@@ -1,4 +1,4 @@
 @echo off
 cd /d "%~dp0.."
-python -m mockup.main
+".venv\Scripts\python.exe" -m mockup.main
 if errorlevel 1 pause

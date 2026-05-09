@@ -7,14 +7,39 @@ from mockup.mock_session import MockSession, display_week
 
 def build_branch_lines(session: MockSession) -> list[str]:
     wk = display_week(session)
-    lines: list[str] = [
-        f"  Root: Childhood path  [calendar week ~{wk}]",
-        "  |",
-        "  +-- Early focus: Observation",
-        "  |     |",
-        "  |     +-- Scholar | Logic  <-- current",
-        "  |     |     |",
-    ]
+    lines: list[str] = []
+    if session.last_event is not None and session.last_reaction:
+        lines.extend(
+            [
+                "  [Mock UI] Last interaction: "
+                f"event {session.last_event}, reaction {session.last_reaction} "
+                "(tree nodes below unlock from placeholder flags only).",
+                "",
+            ]
+        )
+    if session.branch_history:
+        lines.extend(
+            [
+                "  --- Recent branch activity (mock log) ---",
+            ]
+        )
+        for note in session.branch_history[-8:]:
+            lines.append(f"    • {note}")
+        lines.append("")
+    lines.extend(
+        [
+            f"  Root: Childhood path  [calendar week ~{wk}]",
+            "  |",
+        ]
+    )
+    lines.extend(
+        [
+            "  +-- Early focus: Observation",
+            "  |     |",
+            "  |     +-- Scholar | Logic  <-- current",
+            "  |     |     |",
+        ]
+    )
 
     if session.debate_unlocked:
         lines.extend(

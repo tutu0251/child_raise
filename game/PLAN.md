@@ -1,37 +1,51 @@
-# Game package plan (`game/`)
+# Game package — integration plan
 
-This document ties the **mockup** (reference UX) to the **real game** (rules and state).
+The **mockup** (`mockup/`) demonstrates layout, interactions, and ASCII branch visualization using placeholder data (`mock_session`, `mock_constants`, `mock_branch_tree`). The **game** package will replace those placeholders with real rules while reusing `mockup/ui/` presentation pieces where useful.
 
-## Relationship to `mockup/`
+## Responsibilities
 
-| Concern | `mockup/` | `game/` (planned) |
-|--------|-----------|-------------------|
-| Weekly layout | `mockup.ui.layout`, `mockup.ui.console_views` | Import the same modules; pass live data |
-| Events list & reactions | Hard-coded strings + `input()` | Event definitions, validation, narrative lookup |
-| Personality | Random / table deltas on `MockSession` | Formal trait model, caps, synergies, decay |
-| Branch tree | `mock_branch_tree.build_branch_lines` + flags | Real progression graph; emit `list[str]` lines for `render_branch_panel` |
-| Saves / controls | Labels only | Persistence, menus, “next week” orchestration |
+| Area | Owner | Notes |
+|------|--------|--------|
+| Event definitions & scheduling | `game/events` (suggested) | Structured weekly moments, triggers, copy |
+| Branching / narrative graph | `game/branches` | Unlock conditions, path flags, history log |
+| Personality model | `game/personality` | Trait definitions, deltas, caps, stability |
+| Save/load | `game/persistence` | Serialize session + meta |
+| UI binding | Thin adapter | Maps `game` models → strings / numbers for `mockup.ui` |
 
-The mockup remains the **visual and interaction contract**: same panels, same flow order (status → traits → optional cumulative → events → summary → tree → controls → last change).
+## Suggested layout (incremental)
 
-## Suggested `game/` layout (incremental)
+```
+game/
+  __init__.py       # package marker (this file’s parent)
+  PLAN.md           # this document
+  session.py        # GameSession (traits, calendar, branch_state, …)
+  events.py         # resolve_week_events(), apply_reaction(event_id, choice_id)
+  branches.py       # evaluate unlocks, emit ASCII or graph view-model
+  personality.py    # apply_deltas, trends, early-years aggregates
+```
 
-1. **`game/state.py`** — Immutable or tracked game state: child profile, calendar week, trait vector, unlocked branch ids, cumulative counters used for UI.
-2. **`game/events.py`** — Event catalog: id, text, eligible reactions, handlers that return trait deltas and branch updates (pure functions where possible).
-3. **`game/personality.py`** — Apply deltas with clamping, optional curves, and logging for the “last change” banner.
-4. **`game/branches.py`** — Branch DAG or table: prerequisites, labels; function `tree_lines(state) -> list[str]` for ASCII (or swap renderer later).
-5. **`game/engine.py`** — `advance_week`, `resolve_choice(event_id, reaction)`; coordinates events + personality + branches.
-6. **`game/main.py`** (optional) — CLI entry that mirrors `mockup.main` prompts but calls the engine; imports `mockup.ui.console_views` for output.
+Names are indicative; start with one `session.py` and split when files grow.
 
-Start by implementing **`tree_lines(state)`** and **`to_trait_panel(state)`** adapters that feed existing `render_*` functions without changing layout code.
+## Plugging into the GUI mockup layout
 
-## Visual feedback parity
+`mockup.ui.gui_app.MockupGuiApp` currently:
 
-- **Trend arrows**: Snapshot traits before each resolved week (same as `apply_trait_deltas` in mock).
-- **Early-years strip**: Optional; feed cumulative gain map from the engine if you keep that metaphor.
-- **Branch expansion**: Keep generating a `list[str]` so swapping ASCII for richer UI later stays localized.
+1. Holds a `MockSession` and calls `apply_mock_choice`, `mock_uneventful_week`, `auto_simulate_weeks`, `build_summary`, `build_branch_lines`, `format_early_years_batch`.
+2. Refreshes widgets from that session in `refresh_all()`.
 
-## Non-goals for first integration
+**Migration path:**
 
-- Do not duplicate layout strings inside `game/`; extend `console_views` if a new panel is needed.
-- Do not import `MockSession` from production code; treat mock types as reference-only.
+1. Define a **`GameSession`** (or equivalent) in `game/session.py` with the fields the UI needs (child overview, traits dict, summary text, branch lines or raw branch state, last deltas, cumulative gains).
+2. Introduce **`game/adapters.py`** (optional) with functions that mirror today’s mock API, e.g. `game_summary_text(session) -> str`, `game_branch_lines(session) -> list[str]`, so `gui_app` can swap imports behind a small façade.
+3. Either subclass **`MockupGuiApp`** into **`GameGuiApp`** that uses `GameSession`, or replace `self.session` type and wire button handlers to `game.events` / `game.personality`.
+4. Keep **`mockup.ui.gui_theme`** for fonts/colors so the production window stays visually aligned with the mock.
+
+## Plugging into console panels
+
+`mockup.ui.console_views` already accepts plain data. The game can build the same structures `mock_console.render_full()` uses, but sourcing lists/dicts from `GameSession` instead of `MOCK_*`.
+
+## Principles
+
+- **mockup/** stays demo-only; no circular imports from `game/` into `mock_*` during early development.
+- **game/** never imports Tk; UI stays in `mockup.ui.gui_app` (or a future `game/ui.py` that only imports Tk + game adapters).
+- Replace placeholders **function-by-function** (summary → traits → branches) so the GUI keeps running at each step.

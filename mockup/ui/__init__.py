@@ -1,10 +1,19 @@
 """
-Reusable console UI building blocks.
+Presentation layer shared between the mockup and (later) the real game.
 
-`layout` — widths, sections, trait bars, wrapping.
-`console_views` — status bar, trait panel, events, summary, branch lines, controls.
+Layers
+------
+`layout` — Console-width helpers, trait bar rendering, wrapping (no game imports).
+`console_views` — Composed printf-style panels; pass plain dicts/lists from any model.
+`gui_theme` — Fonts and colors for Tk; import without pulling in the full window.
+`gui_app` — Tk mock shell (`MockupGuiApp`). Import when running or embedding the GUI.
 
-The real game (`game/`) should import from here and supply data from its own models.
+The real game (`game/`) should:
+  - Import `mockup.ui.layout` / `console_views` for terminal-style debug views.
+  - Import `mockup.ui.gui_theme` for consistent styling, or fork tokens.
+  - Replace `MockupGuiApp`’s `mockup.mock_*` calls with `game` services (see `game/PLAN.md`).
+
+Tkinter is **not** imported from this package root — use `from mockup.ui.gui_app import main`.
 """
 
 from mockup.ui.console_views import (

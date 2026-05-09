@@ -1,5 +1,8 @@
 """
-Real game logic package (events, branching, personality model).
+Real game logic (future).
 
-Console presentation should reuse `mockup.ui` panels; see `game/PLAN.md`.
+This package will own rules, content, and persistence — not Tk widgets or printf layouts.
+See `game/PLAN.md` for how models plug into `mockup.ui` shells during development.
 """
+
+__all__: list[str] = []

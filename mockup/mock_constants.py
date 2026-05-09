@@ -11,15 +11,16 @@ MOCK_CHILD = {
     "temperament": "Curious, cautious",
 }
 
+# Big Five + resilience, independence, risk-taking (placeholder values).
 MOCK_TRAITS_ORDER: list[tuple[str, int]] = [
-    ("Curiosity", 72),
-    ("Patience", 45),
-    ("Empathy", 61),
-    ("Discipline", 38),
-    ("Creativity", 84),
-    ("Confidence", 52),
-    ("Social ease", 33),
+    ("Openness", 72),
+    ("Conscientiousness", 45),
+    ("Extraversion", 33),
+    ("Agreeableness", 61),
+    ("Neuroticism", 40),
     ("Resilience", 67),
+    ("Independence", 52),
+    ("Risk-taking", 38),
 ]
 
 MOCK_EVENTS = [
@@ -35,22 +36,25 @@ MOCK_SUMMARY_BASE = (
 )
 
 MOCK_CONTROLS = [
-    ("Save", "Persist mock session"),
-    ("Resume", "Load last mock checkpoint"),
-    ("Next Week", "Advance mock timeline"),
+    ("Save", "Placeholder persistence"),
+    ("Resume", "Placeholder load"),
+    ("Branch", "Placeholder branch actions"),
+    ("Next week (calm)", "Uneventful mock week"),
+    ("Noisy demo week", "Random multi-bump mock week"),
+    ("View Branch Tree", "ASCII tree window"),
     ("Options", "Placeholder settings"),
 ]
 
 MOCK_DELTAS: dict[tuple[int, str], dict[str, int]] = {
-    (1, "A"): {"Confidence": 4, "Social ease": 3, "Curiosity": 2},
-    (1, "B"): {"Patience": 3, "Resilience": 3, "Empathy": 1},
-    (1, "C"): {"Discipline": 4, "Confidence": 2},
-    (2, "A"): {"Creativity": 4, "Empathy": 3, "Curiosity": 2},
-    (2, "B"): {"Patience": 4, "Resilience": 3},
-    (2, "C"): {"Discipline": 3, "Creativity": 2},
-    (3, "A"): {"Empathy": 4, "Resilience": 3},
-    (3, "B"): {"Patience": 4, "Resilience": 2},
-    (3, "C"): {"Resilience": 4, "Discipline": 3},
+    (1, "A"): {"Extraversion": 4, "Independence": 3, "Openness": 2},
+    (1, "B"): {"Conscientiousness": 3, "Resilience": 3, "Agreeableness": 1},
+    (1, "C"): {"Conscientiousness": 4, "Extraversion": 2},
+    (2, "A"): {"Openness": 4, "Agreeableness": 3, "Independence": 2},
+    (2, "B"): {"Conscientiousness": 4, "Resilience": 3},
+    (2, "C"): {"Conscientiousness": 3, "Openness": 2},
+    (3, "A"): {"Agreeableness": 4, "Resilience": 3},
+    (3, "B"): {"Conscientiousness": 4, "Resilience": 2},
+    (3, "C"): {"Resilience": 4, "Conscientiousness": 3},
 }
 
 REACTION_BLURBS = {
