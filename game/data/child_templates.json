@@ -1,0 +1,196 @@
+{
+  "schema_version": 1,
+  "description": "Predefined child profiles: temperament, branch flavor, baseline traits (0-100). Pick one at new game.",
+  "templates": [
+    {
+      "id": "infant_calm",
+      "name": "Baby Jordan",
+      "gender": "Boy",
+      "age_years": 0,
+      "calendar_week": 20,
+      "temperament": "Easy-going, sensory-sensitive",
+      "branch": "Infant care — rhythms & regulation",
+      "baseline_traits": {
+        "Openness": 55,
+        "Conscientiousness": 40,
+        "Extraversion": 48,
+        "Agreeableness": 62,
+        "Neuroticism": 35,
+        "Resilience": 58,
+        "Independence": 30,
+        "Risk-taking": 42
+      }
+    },
+    {
+      "id": "toddler_spirited",
+      "name": "Sam Rivera",
+      "gender": "Non-binary",
+      "age_years": 2,
+      "calendar_week": 8,
+      "temperament": "Bold, quick to frustration",
+      "branch": "Toddler — boundaries with warmth",
+      "baseline_traits": {
+        "Openness": 68,
+        "Conscientiousness": 38,
+        "Extraversion": 72,
+        "Agreeableness": 44,
+        "Neuroticism": 52,
+        "Resilience": 46,
+        "Independence": 55,
+        "Risk-taking": 70
+      }
+    },
+    {
+      "id": "preschool_observer",
+      "name": "Amira Hassan",
+      "gender": "Girl",
+      "age_years": 4,
+      "calendar_week": 15,
+      "temperament": "Observant, slow-to-warm",
+      "branch": "Preschool — gentle social stretching",
+      "baseline_traits": {
+        "Openness": 70,
+        "Conscientiousness": 52,
+        "Extraversion": 36,
+        "Agreeableness": 60,
+        "Neuroticism": 48,
+        "Resilience": 54,
+        "Independence": 44,
+        "Risk-taking": 40
+      }
+    },
+    {
+      "id": "early_school_focused",
+      "name": "Diego Morales",
+      "gender": "Boy",
+      "age_years": 6,
+      "calendar_week": 33,
+      "temperament": "Determined, perfection-leaning",
+      "branch": "Early school — routines & confidence",
+      "baseline_traits": {
+        "Openness": 58,
+        "Conscientiousness": 72,
+        "Extraversion": 46,
+        "Agreeableness": 56,
+        "Neuroticism": 50,
+        "Resilience": 50,
+        "Independence": 48,
+        "Risk-taking": 44
+      }
+    },
+    {
+      "id": "middle_childhood_scholar",
+      "name": "Lin Mei",
+      "gender": "Girl",
+      "age_years": 8,
+      "calendar_week": 12,
+      "temperament": "Curious, cautious",
+      "branch": "Scholar | Logic track",
+      "baseline_traits": {
+        "Openness": 72,
+        "Conscientiousness": 45,
+        "Extraversion": 33,
+        "Agreeableness": 61,
+        "Neuroticism": 40,
+        "Resilience": 67,
+        "Independence": 52,
+        "Risk-taking": 38
+      }
+    },
+    {
+      "id": "middle_childhood_athlete",
+      "name": "Trey Williams",
+      "gender": "Boy",
+      "age_years": 10,
+      "calendar_week": 5,
+      "temperament": "Competitive, loyal",
+      "branch": "Athletics | Team sports",
+      "baseline_traits": {
+        "Openness": 52,
+        "Conscientiousness": 58,
+        "Extraversion": 68,
+        "Agreeableness": 54,
+        "Neuroticism": 42,
+        "Resilience": 64,
+        "Independence": 56,
+        "Risk-taking": 62
+      }
+    },
+    {
+      "id": "middle_childhood_creative",
+      "name": "Priya Nair",
+      "gender": "Girl",
+      "age_years": 11,
+      "calendar_week": 40,
+      "temperament": "Imaginative, moody spells",
+      "branch": "Arts | Story & stage",
+      "baseline_traits": {
+        "Openness": 82,
+        "Conscientiousness": 48,
+        "Extraversion": 50,
+        "Agreeableness": 58,
+        "Neuroticism": 55,
+        "Resilience": 52,
+        "Independence": 60,
+        "Risk-taking": 58
+      }
+    },
+    {
+      "id": "teen_analytical",
+      "name": "Noah Kim",
+      "gender": "Boy",
+      "age_years": 14,
+      "calendar_week": 22,
+      "temperament": "Analytical, privacy-valuing",
+      "branch": "STEM club | Robotics lane",
+      "baseline_traits": {
+        "Openness": 68,
+        "Conscientiousness": 66,
+        "Extraversion": 38,
+        "Agreeableness": 50,
+        "Neuroticism": 48,
+        "Resilience": 58,
+        "Independence": 72,
+        "Risk-taking": 46
+      }
+    },
+    {
+      "id": "teen_social",
+      "name": "Zoe Carter",
+      "gender": "Girl",
+      "age_years": 16,
+      "calendar_week": 7,
+      "temperament": "Social, boundary-testing",
+      "branch": "Peer leadership | Student council",
+      "baseline_traits": {
+        "Openness": 74,
+        "Conscientiousness": 52,
+        "Extraversion": 78,
+        "Agreeableness": 62,
+        "Neuroticism": 58,
+        "Resilience": 54,
+        "Independence": 68,
+        "Risk-taking": 64
+      }
+    },
+    {
+      "id": "teen_steady",
+      "name": "Marcus Bell",
+      "gender": "Boy",
+      "age_years": 17,
+      "calendar_week": 48,
+      "temperament": "Steady, quietly ambitious",
+      "branch": "College-prep | Balanced load",
+      "baseline_traits": {
+        "Openness": 62,
+        "Conscientiousness": 76,
+        "Extraversion": 44,
+        "Agreeableness": 64,
+        "Neuroticism": 45,
+        "Resilience": 70,
+        "Independence": 74,
+        "Risk-taking": 48
+      }
+    }
+  ]
+}
