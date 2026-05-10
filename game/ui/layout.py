@@ -27,7 +27,11 @@ from game.settings import GameSettings
 from game.simulation import (
     advance_game_week,
     apply_auto_reactions_current_week,
+    format_autoplay_highlight_line,
+    format_batch_trait_summary,
+    normalize_age_calendar_week,
     run_batch_autoplay_save_all,
+    trait_delta_between,
 )
 from game.template_data import (
     DEFAULT_TRAIT_KEYS,
@@ -71,7 +75,7 @@ class GameMainWindow:
         self._rng = rng or random.Random()
         self._summary_narrative = summary_narrative
         self._stats_blurb = stats_blurb
-        self._calendar_week = int(child.get("calendar_week", 12))
+        self._calendar_week = int(self._child.get("calendar_week", 1))
         self._debate_highlight = False
         self._weekly_slots: list[dict] = []
         self._handled_events: set[int] = set()
@@ -99,6 +103,13 @@ class GameMainWindow:
         self._btn_fast_forward: ttk.Button | None = None
         self._auto_play_prog: ttk.Progressbar | None = None
         self._lbl_auto_prog: ttk.Label | None = None
+        self._auto_play_highlights: list[dict] = []
+        self._auto_play_batch_log: list[str] = []
+        self._ff_weeks_in_batch: int = 0
+        self._ff_batch_anchor: dict[str, int] | None = None
+        self._ff_batch_start_sy: float = 0.0
+        self._ff_batch_active_band: str | None = None
+        self._ff_total_weeks_approx: float = 1.0
 
         if resume_payload is not None:
             self._restore_save_payload(resume_payload)
@@ -106,6 +117,8 @@ class GameMainWindow:
             self._resample_weekly_events()
 
         self._child = merge_child_stat_defaults(self._child)
+        self._calendar_week = normalize_age_calendar_week(self._child, self._calendar_week)
+        self._child["calendar_week"] = self._calendar_week
 
         self.root = tk.Tk()
         # Avoid visible resize/reflow flicker while widgets are packed (common on Windows).
@@ -270,6 +283,7 @@ class GameMainWindow:
             week_history=self._week_history,
             simulation_length_years=self._settings.simulation_length_years,
             simulated_years_approx=self._simulated_years(),
+            autoplay_highlights=self._auto_play_highlights if self._auto_play_highlights else None,
         )
         top = tk.Toplevel(self.root)
         top.title("Personality analysis — run complete")
@@ -303,6 +317,8 @@ class GameMainWindow:
         if ay >= 3:
             return
         self._child["age_years"] = 3
+        self._calendar_week = normalize_age_calendar_week(self._child, self._calendar_week)
+        self._child["calendar_week"] = self._calendar_week
         self._resample_weekly_events()
         self._snapshot_trait_week_start()
         self._stats_blurb = "Options: ages 0–2 skipped — child set to age 3 for faster play (placeholder)."
@@ -363,6 +379,8 @@ class GameMainWindow:
             messagebox.showerror("Resume", str(e))
             return
         self._child = merge_child_stat_defaults(self._child)
+        self._calendar_week = normalize_age_calendar_week(self._child, self._calendar_week)
+        self._child["calendar_week"] = self._calendar_week
         self._last_save_path = path if not fork else None
         self._auto_play_active = False
         self._auto_play_stop_requested = False
@@ -444,24 +462,44 @@ class GameMainWindow:
             f"Run target: {self._settings.simulation_length_years}y · "
             f"~{self._simulated_years():.1f}y on calendar (placeholder pacing)."
         )
-        feedback = build_weekly_narrative_feedback(
-            calendar_week=self._calendar_week,
-            child_name=name,
-            event_count=len(self._weekly_slots),
-            reaction_lines_count=len(self._week_reaction_lines),
-            traits_now=self._traits,
-            traits_week_start=self._traits_at_week_start,
-            simulation_target_years=self._settings.simulation_length_years,
-            simulated_years_approx=self._simulated_years(),
-            auto_uneventful_note=auto_note,
+        sy = self._simulated_years()
+        use_compact_ff = (
+            self._auto_play_active
+            and self._settings.auto_play_batch_summaries
+            and self._ff_weeks_in_batch > 0
         )
-        body = (
-            "\n".join(self._week_reaction_lines)
-            if self._week_reaction_lines
-            else "No reactions logged yet this week."
-        )
+        if use_compact_ff:
+            bsz = self._autoplay_batch_size(self._ff_batch_active_band)
+            feedback = (
+                f"Fast-forward: batch rollup active (~{sy:.2f}y). "
+                f"Progress in batch {self._ff_weeks_in_batch}/{bsz} weeks — per-week lines stay in history."
+            )
+            body = "(Omitting per-week reaction text in this panel while batch summaries are enabled.)"
+        else:
+            feedback = build_weekly_narrative_feedback(
+                calendar_week=self._calendar_week,
+                child_name=name,
+                event_count=len(self._weekly_slots),
+                reaction_lines_count=len(self._week_reaction_lines),
+                traits_now=self._traits,
+                traits_week_start=self._traits_at_week_start,
+                simulation_target_years=self._settings.simulation_length_years,
+                simulated_years_approx=sy,
+                auto_uneventful_note=auto_note,
+            )
+            body = (
+                "\n".join(self._week_reaction_lines)
+                if self._week_reaction_lines
+                else "No reactions logged yet this week."
+            )
         parts = [head, "", "--- Placeholder narrative feedback ---", feedback, "", "--- This week's log ---", body]
-        if self._settings.batch_early_years_stats and self._is_early_childhood():
+        if self._auto_play_active and self._settings.auto_play_batch_summaries and self._auto_play_batch_log:
+            parts.extend(["", "--- Auto-play batch summaries ---", *self._auto_play_batch_log[-12:]])
+        if self._auto_play_active and self._settings.auto_play_collect_highlights and self._auto_play_highlights:
+            tail = self._auto_play_highlights[-6:]
+            parts.extend(["", "--- Recent key events (auto-play) ---"])
+            parts.extend([format_autoplay_highlight_line(h) for h in tail])
+        elif self._settings.batch_early_years_stats and self._is_early_childhood():
             tail_weeks = [h for h in self._week_history[-10:] if isinstance(h, dict)]
             rx = sum(len(h.get("reactions") or []) for h in tail_weeks)
             parts.extend(
@@ -496,6 +534,7 @@ class GameMainWindow:
         self._check_simulation_complete()
 
     def _apply_auto_reactions_for_current_week(self, *, prefix: str = "[Auto-play] ") -> int:
+        sink = self._auto_play_highlights if self._auto_play_active and self._settings.auto_play_collect_highlights else None
         return apply_auto_reactions_current_week(
             traits=self._traits,
             weekly_slots=self._weekly_slots,
@@ -505,6 +544,9 @@ class GameMainWindow:
             settings=self._settings,
             rng=self._rng,
             prefix=prefix,
+            highlight_sink=sink,
+            calendar_week=self._calendar_week,
+            simulated_years_approx=self._simulated_years(),
         )
 
     def _branch_lines(self) -> list[str]:
@@ -573,6 +615,41 @@ class GameMainWindow:
         age = self._child.get("age_years", "?")
         return f"Age {age} · Week {self._calendar_week}"
 
+    def _autoplay_band_for_sy(self, sy: float) -> str | None:
+        s = self._settings
+        if not s.auto_play_batch_summaries:
+            return None
+        if s.auto_play_early_batch_age_lo <= sy < s.auto_play_early_batch_age_hi:
+            return "early"
+        if s.auto_play_batch_weeks_later > 0 and sy >= s.auto_play_early_batch_age_hi:
+            return "later"
+        return None
+
+    def _autoplay_batch_size(self, band: str | None) -> int:
+        if band == "early":
+            return int(self._settings.auto_play_batch_weeks_early)
+        if band == "later":
+            return int(self._settings.auto_play_batch_weeks_later)
+        return 0
+
+    def _ff_flush_autoplay_batch(self, *, tag: str = "") -> None:
+        if self._ff_weeks_in_batch <= 0 or self._ff_batch_anchor is None:
+            self._ff_weeks_in_batch = 0
+            self._ff_batch_anchor = None
+            self._ff_batch_active_band = None
+            return
+        d = trait_delta_between(self._ff_batch_anchor, self._traits)
+        sy_end = self._simulated_years()
+        extra = f" {tag}".rstrip()
+        line = (
+            f"~{self._ff_batch_start_sy:.2f}–{sy_end:.2f}y · {self._ff_weeks_in_batch}w{extra}: "
+            f"{format_batch_trait_summary(d)}"
+        )
+        self._auto_play_batch_log.append(line)
+        self._ff_weeks_in_batch = 0
+        self._ff_batch_anchor = None
+        self._ff_batch_active_band = None
+
     def _build_controls(self, parent: ttk.Frame) -> None:
         lf = ttk.LabelFrame(parent, text="Controls", padding=8)
         lf.pack(fill=tk.X)
@@ -632,8 +709,13 @@ class GameMainWindow:
         span = max(self._auto_play_span, 1e-9)
         frac = max(0.0, min(1.0, (sy - self._auto_play_start_sy) / span))
         self._auto_play_prog["value"] = int(1000 * frac)
+        wy_done = max(0.0, (sy - self._auto_play_start_sy) * 52.0)
+        tw = max(1.0, self._ff_total_weeks_approx)
         self._lbl_auto_prog.config(
-            text=f"Fast-forward: ~{sy:.2f}y / {self._settings.simulation_length_years}y"
+            text=(
+                f"Fast-forward: ~{wy_done:.0f}/{tw:.0f} weeks "
+                f"(~{sy:.2f}y / {self._settings.simulation_length_years}y)"
+            )
         )
 
     def _on_fast_forward_dialog(self) -> None:
@@ -689,6 +771,13 @@ class GameMainWindow:
             float(self._settings.simulation_length_years) - self._auto_play_start_sy,
             1e-6,
         )
+        self._ff_total_weeks_approx = max(1.0, self._auto_play_span * 52.0)
+        self._auto_play_highlights.clear()
+        self._auto_play_batch_log.clear()
+        self._ff_weeks_in_batch = 0
+        self._ff_batch_anchor = None
+        self._ff_batch_active_band = None
+        self._ff_batch_start_sy = 0.0
         self._auto_play_active = True
         self._auto_play_stop_requested = False
         self._sync_fast_forward_widgets(idle=False)
@@ -707,19 +796,48 @@ class GameMainWindow:
             if self._auto_play_stop_requested:
                 self._auto_play_active = False
                 self._auto_play_stop_requested = False
+                self._ff_flush_autoplay_batch(tag="(stopped)")
                 self._sync_fast_forward_widgets(idle=True)
+                self._rebuild_week_summary()
                 self.refresh_all()
                 return
 
             if self._simulated_years() + 1e-9 >= float(self._settings.simulation_length_years):
                 self._auto_play_active = False
+                self._ff_flush_autoplay_batch()
                 self._sync_fast_forward_widgets(idle=True)
+                self._rebuild_week_summary()
                 self.refresh_all()
                 return
+
+            sy_before = self._simulated_years()
+            band = self._autoplay_band_for_sy(sy_before)
+            if self._ff_weeks_in_batch > 0 and self._ff_batch_active_band is not None:
+                if band != self._ff_batch_active_band:
+                    self._ff_flush_autoplay_batch(tag="(boundary)")
+                    band = self._autoplay_band_for_sy(self._simulated_years())
+
+            if band is not None and self._ff_weeks_in_batch == 0:
+                self._ff_batch_anchor = dict(self._traits)
+                self._ff_batch_start_sy = sy_before
+                self._ff_batch_active_band = band
 
             n_summary = int(self._settings.auto_play_summary_every_n_weeks)
             self._apply_auto_reactions_for_current_week(prefix="[Auto-play] ")
             self._advance_week()
+
+            sy_after = self._simulated_years()
+            if band is not None:
+                self._ff_weeks_in_batch += 1
+                bsize = self._autoplay_batch_size(band)
+                crossed_hi = band == "early" and sy_after >= float(self._settings.auto_play_early_batch_age_hi)
+                partial = crossed_hi and self._ff_weeks_in_batch < bsize
+                if crossed_hi or self._ff_weeks_in_batch >= bsize:
+                    self._ff_flush_autoplay_batch(tag="(partial)" if partial else "")
+
+            self._update_fast_forward_progress()
+            if self._settings.auto_play_batch_summaries and self._auto_play_active:
+                self._rebuild_week_summary()
 
             if n_summary > 0 and self._week_history:
                 wk = int(self._week_history[-1].get("calendar_week", 0))
@@ -729,12 +847,14 @@ class GameMainWindow:
                         f"(~{self._simulated_years():.2f}y simulated)."
                     )
 
-            self._update_fast_forward_progress()
             self.refresh_all()
 
             if self._simulated_years() + 1e-9 >= float(self._settings.simulation_length_years):
                 self._auto_play_active = False
+                self._ff_flush_autoplay_batch()
                 self._sync_fast_forward_widgets(idle=True)
+                self._rebuild_week_summary()
+                self.refresh_all()
                 return
 
             self.root.after(1, self._run_auto_play_step)

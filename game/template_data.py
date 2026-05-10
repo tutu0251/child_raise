@@ -264,12 +264,15 @@ def sample_weekly_events(
     for e in chosen_raw:
         text = render_event_template(e, rng, child_name=child_name, caretaker=caretaker)
         cat = event_category(e)
+        rarity_raw = e.get("rarity")
+        rarity = str(rarity_raw).strip().lower() if rarity_raw else ""
         slots.append(
             {
                 "id": e.get("id"),
                 "text": text,
                 "trait_weights": trait_weights_for_event(e),
                 "category": cat,
+                **({"rarity": rarity} if rarity else {}),
             }
         )
     return slots

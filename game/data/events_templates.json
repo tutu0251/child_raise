@@ -161,6 +161,7 @@
       "id": "infant_005",
       "stage_id": "infant",
       "category": "Milestone",
+      "rarity": "rare",
       "age_min_years": 0.0,
       "age_max_years": 0.999,
       "template": "During {activity}, {child_name} tracked sounds with {focus} while {caretaker} stayed close.",

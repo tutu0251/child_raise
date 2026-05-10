@@ -4,19 +4,81 @@ from __future__ import annotations
 
 import random
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from game.persistence import SCHEMA_VERSION, dump_save, utc_now_iso
-from game.settings import AUTO_PLAY_REACTION_MODES, GameSettings
-from game.template_data import merge_child_stat_defaults, profile_to_game_child, sample_weekly_events
+from game.settings import GameSettings
+from game.template_data import DEFAULT_TRAIT_KEYS, merge_child_stat_defaults, profile_to_game_child, sample_weekly_events
 from game.trait_updates import REACTION_KINDS, apply_trait_deltas, format_delta_line, trait_deltas
+
+
+def trait_delta_between(traits_before: dict[str, int], traits_after: dict[str, int]) -> dict[str, int]:
+    """Integer trait changes from a baseline snapshot to a later snapshot (clamped traits)."""
+    out: dict[str, int] = {}
+    for k in DEFAULT_TRAIT_KEYS:
+        b = int(traits_before.get(k, 50))
+        a = int(traits_after.get(k, 50))
+        d = a - b
+        if d != 0:
+            out[k] = d
+    return out
+
+
+def format_batch_trait_summary(deltas: dict[str, int]) -> str:
+    if not deltas:
+        return "traits ~flat"
+    parts = [f"{k} {v:+d}" for k, v in sorted(deltas.items())]
+    return ", ".join(parts)
+
+
+def format_autoplay_highlight_line(h: dict) -> str:
+    kinds = h.get("kinds") or []
+    kind_lbl = "/".join(str(x) for x in kinds) if kinds else "event"
+    sy = float(h.get("simulated_years", 0.0))
+    cw = h.get("calendar_week", "?")
+    head = f"[{kind_lbl}] ~{sy:.2f}y (week {cw})"
+    txt = str(h.get("event_text", "")).replace("\n", " ").strip()
+    if len(txt) > 90:
+        txt = txt[:87] + "…"
+    rx = h.get("reaction", "")
+    detail = f"{rx}" if rx else ""
+    if txt:
+        detail = f"{detail} — {txt}".strip(" —") if detail else txt
+    peak = h.get("trait_delta_peak")
+    if peak is not None and "major_trait" in kinds:
+        detail = f"{detail} (max |Δ|={peak})".strip()
+    return f"{head}: {detail}" if detail else head
 
 
 def simulated_years(child: dict[str, str | int], calendar_week: int) -> float:
     ay = float(child.get("age_years", 0))
     cw = max(1, int(calendar_week))
     return ay + (cw - 1) / 52.0
+
+
+def normalize_age_calendar_week(child: dict[str, str | int], calendar_week: int) -> int:
+    """
+    Fold a week counter into 1..52 and add completed years to ``age_years``.
+
+    Fixes inconsistent saves where ``calendar_week`` grew without rolling (e.g. Age 3 · Week 833).
+    """
+    ay = int(child.get("age_years", 0))
+    cw = max(1, int(calendar_week))
+    extra, rem = divmod(cw - 1, 52)
+    child["age_years"] = ay + int(extra)
+    return rem + 1
+
+
+def advance_calendar_week(child: dict[str, str | int], calendar_week: int) -> int:
+    """After completing ``calendar_week``, return the next week (1..52) and bump ``age_years`` on year rollover."""
+    new_cw = int(calendar_week) + 1
+    ay = int(child.get("age_years", 0))
+    while new_cw > 52:
+        ay += 1
+        new_cw -= 52
+    child["age_years"] = ay
+    return new_cw
 
 
 def pick_auto_reaction_and_intensity(settings: GameSettings, rng: random.Random) -> tuple[str, int]:
@@ -88,7 +150,8 @@ def advance_game_week(
         week_reaction_lines,
         week_history,
     )
-    new_cw = calendar_week + 1
+    new_cw = advance_calendar_week(child, calendar_week)
+    child["calendar_week"] = new_cw
     weekly_slots[:] = sample_weekly_events(
         events_catalog,
         age_years=int(child.get("age_years", 8)),
@@ -113,8 +176,13 @@ def apply_auto_reactions_current_week(
     settings: GameSettings,
     rng: random.Random,
     prefix: str = "[Auto] ",
+    highlight_sink: list[dict] | None = None,
+    calendar_week: int = 0,
+    simulated_years_approx: float = 0.0,
 ) -> int:
     applied = 0
+    collect = highlight_sink is not None and getattr(settings, "auto_play_collect_highlights", True)
+    threshold = int(getattr(settings, "auto_play_major_trait_delta", 8))
     for i in range(len(weekly_slots)):
         if i in handled_events:
             continue
@@ -142,6 +210,32 @@ def apply_auto_reactions_current_week(
                 "line": line,
             }
         )
+        if collect and highlight_sink is not None:
+            cat = str(slot.get("category", ""))
+            rarity = str(slot.get("rarity") or "").strip().lower()
+            peak = max((abs(v) for v in deltas.values()), default=0)
+            kinds: list[str] = []
+            if cat == "Milestone":
+                kinds.append("milestone")
+            if rarity == "rare":
+                kinds.append("rare")
+            if peak >= threshold:
+                kinds.append("major_trait")
+            if kinds:
+                highlight_sink.append(
+                    {
+                        "kinds": kinds,
+                        "calendar_week": int(calendar_week),
+                        "simulated_years": float(simulated_years_approx),
+                        "event_id": slot.get("id"),
+                        "event_text": str(slot.get("text", ""))[:400],
+                        "category": cat,
+                        "reaction": reaction,
+                        "intensity": int(intensity),
+                        "trait_delta_peak": int(peak),
+                        "deltas": dict(deltas),
+                    }
+                )
         applied += 1
     return applied
 
@@ -158,11 +252,13 @@ class AutoplayContext:
     event_descriptions: list[str]
     week_history: list[dict]
     traits_at_week_start: dict[str, int]
+    autoplay_highlights: list[dict] = field(default_factory=list)
 
     def simulated_years(self) -> float:
         return simulated_years(self.child, self.calendar_week)
 
     def step(self, events_catalog: list[dict], settings: GameSettings, rng: random.Random) -> None:
+        sink = self.autoplay_highlights if settings.auto_play_collect_highlights else None
         apply_auto_reactions_current_week(
             traits=self.traits,
             weekly_slots=self.weekly_slots,
@@ -171,6 +267,9 @@ class AutoplayContext:
             current_week_reactions=self.current_week_reactions,
             settings=settings,
             rng=rng,
+            highlight_sink=sink,
+            calendar_week=self.calendar_week,
+            simulated_years_approx=self.simulated_years(),
         )
         self.calendar_week, self.traits_at_week_start = advance_game_week(
             child=self.child,
@@ -203,6 +302,8 @@ def build_autoplay_context_from_profile(profile: dict, *, rng: random.Random, ev
     child, traits = profile_to_game_child(profile)
     child = merge_child_stat_defaults(dict(child))
     cw = int(child.get("calendar_week", 1))
+    cw = normalize_age_calendar_week(child, cw)
+    child["calendar_week"] = cw
     weekly_slots = sample_weekly_events(
         events_catalog,
         age_years=int(child.get("age_years", 8)),
@@ -224,6 +325,7 @@ def build_autoplay_context_from_profile(profile: dict, *, rng: random.Random, ev
         event_descriptions=event_descriptions,
         week_history=[],
         traits_at_week_start=dict(traits),
+        autoplay_highlights=[],
     )
 
 
@@ -273,12 +375,17 @@ def run_batch_autoplay_save_all(
 
 __all__ = [
     "AutoplayContext",
+    "advance_calendar_week",
     "advance_game_week",
     "apply_auto_reactions_current_week",
     "build_autoplay_context_from_profile",
     "finalize_week_snapshot",
+    "format_autoplay_highlight_line",
+    "format_batch_trait_summary",
+    "normalize_age_calendar_week",
     "pick_auto_reaction_and_intensity",
     "run_autoplay_until_complete",
     "run_batch_autoplay_save_all",
     "simulated_years",
+    "trait_delta_between",
 ]

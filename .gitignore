@@ -6,3 +6,4 @@ mockup/__pycache__/main.cpython-310.pyc
 mockup/__pycache__/mock_branch_tree.cpython-310.pyc
 mockup/__pycache__/mock_constants.cpython-310.pyc
 mockup/__pycache__/mock_session.cpython-310.pyc
+/game/save/*

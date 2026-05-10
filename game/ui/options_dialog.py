@@ -18,7 +18,7 @@ def show_options_dialog(parent: tk.Misc, settings: GameSettings) -> bool:
     top.title("Options")
     top.transient(parent)
     top.grab_set()
-    top.minsize(440, 520)
+    top.minsize(440, 640)
 
     result = {"ok": False}
 
@@ -35,6 +35,8 @@ def show_options_dialog(parent: tk.Misc, settings: GameSettings) -> bool:
     auto_var = tk.BooleanVar(value=settings.auto_simulate_uneventful_weeks)
     batch_var = tk.BooleanVar(value=settings.batch_early_years_stats)
     branch_panel_var = tk.BooleanVar(value=settings.show_branch_timeline_panel)
+    ff_batch_var = tk.BooleanVar(value=settings.auto_play_batch_summaries)
+    ff_hi_var = tk.BooleanVar(value=settings.auto_play_collect_highlights)
 
     ttk.Checkbutton(
         frm,
@@ -111,20 +113,65 @@ def show_options_dialog(parent: tk.Misc, settings: GameSettings) -> bool:
         row=12, column=0, sticky=tk.W
     )
 
+    ttk.Checkbutton(
+        frm,
+        text="Fast-forward: batch summaries (compact panel + trait rollups; ages in band below)",
+        variable=ff_batch_var,
+    ).grid(row=13, column=0, columnspan=2, sticky=tk.W, pady=(10, 2))
+
+    ttk.Checkbutton(
+        frm,
+        text="Fast-forward: collect key events (milestones, rare templates, large trait shifts)",
+        variable=ff_hi_var,
+    ).grid(row=14, column=0, columnspan=2, sticky=tk.W, pady=2)
+
+    early_w_var = tk.IntVar(value=int(settings.auto_play_batch_weeks_early))
+    later_w_var = tk.IntVar(value=int(settings.auto_play_batch_weeks_later))
+    major_d_var = tk.IntVar(value=int(settings.auto_play_major_trait_delta))
+
+    ttk.Label(frm, text="Batch window: simulated age low / high (years, early band):").grid(
+        row=15, column=0, columnspan=2, sticky=tk.W, pady=(6, 2)
+    )
+    age_band = ttk.Frame(frm)
+    age_band.grid(row=16, column=0, columnspan=2, sticky=tk.W)
+    age_lo_var = tk.DoubleVar(value=float(settings.auto_play_early_batch_age_lo))
+    age_hi_var = tk.DoubleVar(value=float(settings.auto_play_early_batch_age_hi))
+    ttk.Label(age_band, text="Low").pack(side=tk.LEFT)
+    ttk.Spinbox(age_band, from_=0.0, to=18.0, increment=0.5, textvariable=age_lo_var, width=6).pack(
+        side=tk.LEFT, padx=(4, 12)
+    )
+    ttk.Label(age_band, text="High").pack(side=tk.LEFT)
+    ttk.Spinbox(age_band, from_=0.0, to=18.0, increment=0.5, textvariable=age_hi_var, width=6).pack(
+        side=tk.LEFT, padx=(4, 0)
+    )
+
+    ttk.Label(frm, text="Weeks per batch summary: early band / later ages (0 = later off):").grid(
+        row=17, column=0, columnspan=2, sticky=tk.W, pady=(6, 2)
+    )
+    bw = ttk.Frame(frm)
+    bw.grid(row=18, column=0, columnspan=2, sticky=tk.W)
+    ttk.Label(bw, text="Early").pack(side=tk.LEFT)
+    ttk.Spinbox(bw, from_=1, to=520, textvariable=early_w_var, width=7).pack(side=tk.LEFT, padx=(4, 12))
+    ttk.Label(bw, text="Later").pack(side=tk.LEFT)
+    ttk.Spinbox(bw, from_=0, to=520, textvariable=later_w_var, width=7).pack(side=tk.LEFT, padx=(4, 12))
+    ttk.Label(bw, text="Major |Δtrait|").pack(side=tk.LEFT)
+    ttk.Spinbox(bw, from_=1, to=50, textvariable=major_d_var, width=5).pack(side=tk.LEFT, padx=(4, 0))
+
     hint = ttk.Label(
         frm,
         text=(
             "Uneventful auto-advance caps after many empty weeks to keep the UI responsive. "
             "Skip 0–2 applies once when you save options if the child is below age 3. "
-            "Fast-forward uses the auto-play reaction mode and intensity above."
+            "Fast-forward uses the auto-play reaction mode and intensity above. "
+            "Mark rare events in JSON with \"rarity\": \"rare\" on an event template."
         ),
         wraplength=400,
         foreground=theme.COLOR_NEUTRAL,
     )
-    hint.grid(row=13, column=0, columnspan=2, sticky=tk.W, pady=(12, 8))
+    hint.grid(row=19, column=0, columnspan=2, sticky=tk.W, pady=(12, 8))
 
     btn_row = ttk.Frame(frm)
-    btn_row.grid(row=14, column=0, columnspan=2, sticky=tk.E)
+    btn_row.grid(row=20, column=0, columnspan=2, sticky=tk.E)
 
     def on_ok() -> None:
         settings.skip_years_zero_to_two = skip_var.get()
@@ -137,6 +184,13 @@ def show_options_dialog(parent: tk.Misc, settings: GameSettings) -> bool:
         settings.auto_play_intensity_min = int(int_min_var.get())
         settings.auto_play_intensity_max = int(int_max_var.get())
         settings.auto_play_summary_every_n_weeks = int(summary_n_var.get())
+        settings.auto_play_batch_summaries = ff_batch_var.get()
+        settings.auto_play_collect_highlights = ff_hi_var.get()
+        settings.auto_play_early_batch_age_lo = float(age_lo_var.get())
+        settings.auto_play_early_batch_age_hi = float(age_hi_var.get())
+        settings.auto_play_batch_weeks_early = int(early_w_var.get())
+        settings.auto_play_batch_weeks_later = int(later_w_var.get())
+        settings.auto_play_major_trait_delta = int(major_d_var.get())
         settings.__post_init__()
         result["ok"] = True
         top.destroy()

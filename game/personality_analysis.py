@@ -25,6 +25,7 @@ def build_personality_analysis(
     week_history: list[dict],
     simulation_length_years: int,
     simulated_years_approx: float,
+    autoplay_highlights: list[dict] | None = None,
 ) -> str:
     name = str(child.get("name", "Child"))
     branch = str(child.get("branch", ""))
@@ -60,6 +61,14 @@ def build_personality_analysis(
             "(Analysis text is deterministic from traits and logs; refine copy later.)",
         ]
     )
+    if autoplay_highlights:
+        from game.simulation import format_autoplay_highlight_line
+
+        lines.extend(["", "--- Auto-play key events ---"])
+        for h in autoplay_highlights[:80]:
+            lines.append(f"  {format_autoplay_highlight_line(h)}")
+        if len(autoplay_highlights) > 80:
+            lines.append(f"  … and {len(autoplay_highlights) - 80} more")
     return "\n".join(lines)
 
 

@@ -36,6 +36,10 @@ from game.simulation import (
     advance_game_week,
     apply_auto_reactions_current_week,
     build_autoplay_context_from_profile,
+    format_batch_trait_summary,
+    normalize_age_calendar_week,
+    run_autoplay_until_complete,
+    trait_delta_between,
 )
 
 
@@ -275,6 +279,35 @@ class TestWeeklyEvents(unittest.TestCase):
             cats = [s["category"] for s in slots]
             self.assertEqual(len(cats), len(set(cats)), cats)
 
+    def test_sample_weekly_events_passes_optional_rarity(self) -> None:
+        catalog = [
+            {
+                "id": "rare_one",
+                "stage_id": "infant",
+                "category": "Milestone",
+                "rarity": "rare",
+                "age_min_years": 0.0,
+                "age_max_years": 1.0,
+                "template": "Hello {child_name}",
+                "pools": {},
+            }
+        ]
+        for seed in range(500):
+            rng = __import__("random").Random(seed)
+            slots = sample_weekly_events(
+                catalog,
+                age_years=0,
+                calendar_week=1,
+                child_name="B",
+                rng=rng,
+                max_events=3,
+            )
+            if slots:
+                self.assertEqual(slots[0].get("rarity"), "rare")
+                break
+        else:
+            self.fail("expected at least one non-empty weekly draw")
+
     def test_sample_weekly_events_templates_have_category_field(self) -> None:
         missing = [e for e in self._catalog if "category" not in e]
         self.assertEqual(missing, [])
@@ -412,6 +445,53 @@ class TestAutoPlaySimulation(unittest.TestCase):
         self.assertEqual(handled, {0})
         self.assertTrue(any(traits.get(k, 50) != 50 for k in DEFAULT_TRAIT_KEYS))
 
+    def test_advance_game_week_rolls_age_after_week_52(self) -> None:
+        import random
+
+        rng = random.Random(0)
+        child = {"name": "Kid", "age_years": 3, "calendar_week": 52}
+        traits = {k: 55 for k in DEFAULT_TRAIT_KEYS}
+        catalog = [
+            {
+                "id": "ev",
+                "stage_id": "middle_childhood",
+                "category": "Learning",
+                "age_min_years": 5.0,
+                "age_max_years": 12.0,
+                "template": "Study {child_name}",
+                "pools": {},
+            }
+        ]
+        weekly_slots: list[dict] = []
+        handled: set[int] = set()
+        week_lines: list[str] = []
+        current_rx: list[dict] = []
+        event_descriptions: list[str] = []
+        week_history: list[dict] = []
+
+        new_cw, _ = advance_game_week(
+            child=child,
+            traits=traits,
+            calendar_week=52,
+            weekly_slots=weekly_slots,
+            handled_events=handled,
+            week_reaction_lines=week_lines,
+            current_week_reactions=current_rx,
+            event_descriptions=event_descriptions,
+            week_history=week_history,
+            events_catalog=catalog,
+            rng=rng,
+        )
+        self.assertEqual(new_cw, 1)
+        self.assertEqual(child["age_years"], 4)
+        self.assertEqual(child.get("calendar_week"), 1)
+
+    def test_normalize_age_calendar_week_repairs_flat_counter(self) -> None:
+        child = {"name": "Kid", "age_years": 3}
+        cw = normalize_age_calendar_week(child, 833)
+        self.assertEqual(cw, 1)
+        self.assertEqual(child["age_years"], 19)
+
     def test_advance_game_week_appends_history(self) -> None:
         import random
 
@@ -457,6 +537,7 @@ class TestAutoPlaySimulation(unittest.TestCase):
             rng=rng,
         )
         self.assertEqual(new_cw, 3)
+        self.assertEqual(child.get("calendar_week"), 3)
         self.assertEqual(len(week_history), 1)
         self.assertEqual(week_history[0]["calendar_week"], 2)
         self.assertFalse(week_lines)
@@ -505,6 +586,107 @@ class TestAutoPlaySimulation(unittest.TestCase):
         self.assertIn("Sam", text)
         self.assertIn("Guide", text)
         self.assertIn("Praise", text)
+
+    def test_trait_delta_between_sums_moves(self) -> None:
+        a = {k: 50 for k in DEFAULT_TRAIT_KEYS}
+        b = dict(a)
+        b["Openness"] = 55
+        b["Neuroticism"] = 48
+        d = trait_delta_between(a, b)
+        self.assertEqual(d.get("Openness"), 5)
+        self.assertEqual(d.get("Neuroticism"), -2)
+
+    def test_format_batch_trait_summary(self) -> None:
+        s = format_batch_trait_summary({"Openness": 3, "Neuroticism": -1})
+        self.assertIn("Openness +3", s)
+        self.assertIn("Neuroticism -1", s)
+
+    def test_highlights_milestone_and_rare(self) -> None:
+        settings = GameSettings(
+            auto_play_reaction_mode="guide",
+            auto_play_intensity_min=10,
+            auto_play_intensity_max=10,
+            auto_play_collect_highlights=True,
+            auto_play_major_trait_delta=50,
+        )
+        rng = __import__("random").Random(0)
+        traits = {k: 50 for k in DEFAULT_TRAIT_KEYS}
+        sink: list[dict] = []
+        slots = [
+            {
+                "id": "m1",
+                "text": "First words",
+                "trait_weights": {k: 0.12 for k in DEFAULT_TRAIT_KEYS},
+                "category": "Milestone",
+            },
+            {
+                "id": "r1",
+                "text": "Rare moment",
+                "trait_weights": {k: 0.12 for k in DEFAULT_TRAIT_KEYS},
+                "category": "Learning",
+                "rarity": "rare",
+            },
+        ]
+        apply_auto_reactions_current_week(
+            traits=traits,
+            weekly_slots=slots,
+            handled_events=set(),
+            week_reaction_lines=[],
+            current_week_reactions=[],
+            settings=settings,
+            rng=rng,
+            highlight_sink=sink,
+            calendar_week=3,
+            simulated_years_approx=3.1,
+        )
+        kinds = [tuple(x.get("kinds") or ()) for x in sink]
+        self.assertTrue(any("milestone" in k for k in kinds))
+        self.assertTrue(any("rare" in k for k in kinds))
+
+    def test_autoplay_context_collects_highlights_end_to_end(self) -> None:
+        if not EVENTS_JSON.is_file():
+            raise unittest.SkipTest("events_templates.json missing")
+        import random
+
+        catalog = load_events_templates(EVENTS_JSON)
+        profile = {
+            "name": "HiKid",
+            "age_years": 0,
+            "calendar_week": 1,
+            "gender": "Girl",
+            "branch": "H",
+            "temperament": "Calm",
+            "baseline_traits": {k: 50 for k in DEFAULT_TRAIT_KEYS},
+        }
+        rng = random.Random(99)
+        ctx = build_autoplay_context_from_profile(profile, rng=rng, events_catalog=catalog)
+        settings = GameSettings(simulation_length_years=1, auto_play_collect_highlights=True)
+        run_autoplay_until_complete(ctx, catalog, settings, rng)
+        self.assertTrue(len(ctx.week_history) > 0)
+        self.assertIsInstance(ctx.autoplay_highlights, list)
+
+    def test_personality_analysis_lists_autoplay_highlights(self) -> None:
+        traits = {k: 50 for k in DEFAULT_TRAIT_KEYS}
+        hi = [
+            {
+                "kinds": ["milestone"],
+                "calendar_week": 2,
+                "simulated_years": 3.02,
+                "event_text": "First steps",
+                "reaction": "Encourage",
+                "trait_delta_peak": 4,
+            }
+        ]
+        text = build_personality_analysis(
+            child={"name": "Lee", "branch": "B"},
+            traits=traits,
+            week_history=[],
+            simulation_length_years=18,
+            simulated_years_approx=18.0,
+            autoplay_highlights=hi,
+        )
+        self.assertIn("Auto-play key events", text)
+        self.assertIn("milestone", text)
 
 
 if __name__ == "__main__":
