@@ -128,6 +128,50 @@ def finalize_week_snapshot(
     current_week_reactions.clear()
 
 
+def fill_unanswered_events_with_ignore_zero(
+    *,
+    traits: dict[str, int],
+    weekly_slots: list[dict],
+    handled_events: set[int],
+    week_reaction_lines: list[str],
+    current_week_reactions: list[dict],
+    prefix: str = "[Auto-filled] ",
+) -> int:
+    """
+    Log Ignore at intensity 0 for slots with no caregiver reaction yet.
+    Trait deltas are zero at intensity 0; history stays consistent for manual Next week.
+    """
+    applied = 0
+    for i in range(len(weekly_slots)):
+        if i in handled_events:
+            continue
+        slot = weekly_slots[i]
+        weights = slot.get("trait_weights") or {}
+        deltas = trait_deltas(weights, "Ignore", 0)
+        merged = apply_trait_deltas(dict(traits), deltas)
+        traits.clear()
+        traits.update(merged)
+        handled_events.add(i)
+        line = (
+            f"{prefix}Event {i + 1}: Ignore at intensity 0. "
+            f"{format_delta_line(deltas)}"
+        )
+        week_reaction_lines.append(line)
+        current_week_reactions.append(
+            {
+                "event_index": i,
+                "event_id": slot.get("id"),
+                "event_text": slot.get("text"),
+                "reaction": "Ignore",
+                "intensity": 0,
+                "deltas": deltas,
+                "line": line,
+            }
+        )
+        applied += 1
+    return applied
+
+
 def advance_game_week(
     *,
     child: dict[str, str | int],
@@ -378,6 +422,7 @@ __all__ = [
     "advance_calendar_week",
     "advance_game_week",
     "apply_auto_reactions_current_week",
+    "fill_unanswered_events_with_ignore_zero",
     "build_autoplay_context_from_profile",
     "finalize_week_snapshot",
     "format_autoplay_highlight_line",

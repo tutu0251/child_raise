@@ -70,6 +70,10 @@ def apply_new_game_choices(
     gender: str,
     temperament: str,
     calendar_week: int = 1,
+    intelligence: int | None = None,
+    social_tendency: int | None = None,
+    health: int | None = None,
+    energy: int | None = None,
 ) -> dict:
     """Merge new-game dialog choices into a profile dict (mutates a shallow copy only)."""
     profile = dict(template)
@@ -84,6 +88,17 @@ def apply_new_game_choices(
     t = str(temperament).strip()
     if t:
         profile["temperament"] = t
+
+    if intelligence is not None:
+        profile["intelligence"] = _clamp_optional_int(intelligence, DEFAULT_INTELLIGENCE, 0, 100)
+    if social_tendency is not None:
+        profile["social_tendency"] = _clamp_optional_int(
+            social_tendency, DEFAULT_SOCIAL_TENDENCY, 0, 100
+        )
+    if health is not None:
+        profile["health"] = _clamp_optional_int(health, DEFAULT_HEALTH, 0, 100)
+    if energy is not None:
+        profile["energy"] = _clamp_optional_int(energy, DEFAULT_ENERGY, 0, 100)
 
     return profile
 

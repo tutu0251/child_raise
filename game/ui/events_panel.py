@@ -40,8 +40,12 @@ class EventsPanel:
 
         ttk.Label(
             lf,
-            text="Pick an event, set intensity (0–10), then choose Praise / Punish / Guide / "
-            "Encourage / Restrict / Ignore.",
+            text=(
+                "Pick an event, set intensity (0–10), then choose Praise / Punish / Guide / "
+                "Encourage / Restrict / Ignore. "
+                "If you press Next week with situations still open, each unanswered one is logged as "
+                "Ignore at intensity 0 (no trait shift)."
+            ),
             wraplength=700,
         ).pack(anchor=tk.W, pady=(0, 8))
 

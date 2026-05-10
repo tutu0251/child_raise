@@ -36,6 +36,7 @@ from game.simulation import (
     advance_game_week,
     apply_auto_reactions_current_week,
     build_autoplay_context_from_profile,
+    fill_unanswered_events_with_ignore_zero,
     format_batch_trait_summary,
     normalize_age_calendar_week,
     run_autoplay_until_complete,
@@ -112,6 +113,59 @@ class TestNewGameProfileInit(unittest.TestCase):
         )
         self.assertEqual(p["age_years"], 0)
         self.assertEqual(p["calendar_week"], 5)
+
+    def test_apply_new_game_choices_stat_overrides(self) -> None:
+        base = {
+            "id": "t",
+            "name": "Kid",
+            "age_years": 8,
+            "calendar_week": 1,
+            "gender": "Girl",
+            "temperament": "Calm",
+            "branch": "Main",
+            "baseline_traits": {k: 50 for k in DEFAULT_TRAIT_KEYS},
+            "intelligence": 40,
+            "social_tendency": 40,
+            "health": 90,
+            "energy": 90,
+        }
+        profile = apply_new_game_choices(
+            dict(base),
+            start_age_years=0,
+            gender="Girl",
+            temperament="Calm",
+            calendar_week=1,
+            intelligence=71,
+            social_tendency=62,
+            health=88,
+            energy=77,
+        )
+        child, _traits = profile_to_game_child(profile)
+        self.assertEqual(int(child["age_years"]), 0)
+        self.assertEqual(int(child["intelligence"]), 71)
+        self.assertEqual(int(child["social_tendency"]), 62)
+        self.assertEqual(int(child["health"]), 88)
+        self.assertEqual(int(child["energy"]), 77)
+
+    def test_start_age_three_via_profile(self) -> None:
+        profile = apply_new_game_choices(
+            {
+                "id": "t",
+                "name": "Kid",
+                "age_years": 0,
+                "calendar_week": 1,
+                "gender": "Boy",
+                "temperament": "Calm",
+                "branch": "Main",
+                "baseline_traits": {k: 50 for k in DEFAULT_TRAIT_KEYS},
+            },
+            start_age_years=3,
+            gender="Boy",
+            temperament="Calm",
+            calendar_week=1,
+        )
+        child, _ = profile_to_game_child(profile)
+        self.assertEqual(int(child["age_years"]), 3)
 
 
 class TestGameMainWindowTopBar(unittest.TestCase):
@@ -371,6 +425,25 @@ class TestNarrativePlaceholder(unittest.TestCase):
         self.assertIn("Sam", t)
         self.assertGreater(len(t), 40)
 
+    def test_feedback_includes_event_snippets_and_last_log(self) -> None:
+        long_ev = "x" * 150
+        t = build_weekly_narrative_feedback(
+            calendar_week=1,
+            child_name="Jo",
+            event_count=1,
+            reaction_lines_count=1,
+            traits_now={"Openness": 50},
+            traits_week_start={"Openness": 50},
+            simulation_target_years=18,
+            simulated_years_approx=1.0,
+            event_summaries=[long_ev],
+            last_reaction_summary="Event 1: Guide at intensity 5.",
+        )
+        self.assertIn("Event 1 snapshot:", t)
+        self.assertIn("x" * 119 + "…", t)
+        self.assertIn("Latest log line:", t)
+        self.assertIn("Guide at intensity 5.", t)
+
 
 class TestBranchForestRender(unittest.TestCase):
     def test_render_lines_without_crash(self) -> None:
@@ -413,6 +486,101 @@ class TestSummaryPanelFormatting(unittest.TestCase):
 
 
 class TestAutoPlaySimulation(unittest.TestCase):
+    def test_fill_unanswered_ignore_zero_no_trait_change(self) -> None:
+        traits = {k: 55 for k in DEFAULT_TRAIT_KEYS}
+        before = dict(traits)
+        slots = [
+            {
+                "id": "e1",
+                "text": "situation one",
+                "trait_weights": {k: 0.12 for k in DEFAULT_TRAIT_KEYS},
+                "category": "Learning",
+            },
+            {
+                "id": "e2",
+                "text": "situation two",
+                "trait_weights": {k: 0.12 for k in DEFAULT_TRAIT_KEYS},
+                "category": "Social",
+            },
+        ]
+        handled: set[int] = set()
+        lines: list[str] = []
+        reacts: list[dict] = []
+        n = fill_unanswered_events_with_ignore_zero(
+            traits=traits,
+            weekly_slots=slots,
+            handled_events=handled,
+            week_reaction_lines=lines,
+            current_week_reactions=reacts,
+        )
+        self.assertEqual(n, 2)
+        self.assertEqual(handled, {0, 1})
+        self.assertEqual(traits, before)
+        self.assertEqual(len(reacts), 2)
+        self.assertTrue(all(r.get("reaction") == "Ignore" and r.get("intensity") == 0 for r in reacts))
+
+    def test_advance_week_after_fill_unanswered_records_reactions(self) -> None:
+        import random
+
+        rng = random.Random(0)
+        child = {"name": "Kid", "age_years": 10, "calendar_week": 2}
+        traits = {k: 55 for k in DEFAULT_TRAIT_KEYS}
+        catalog = [
+            {
+                "id": "ev",
+                "stage_id": "middle_childhood",
+                "category": "Learning",
+                "age_min_years": 5.0,
+                "age_max_years": 12.0,
+                "template": "Study {child_name}",
+                "pools": {},
+            }
+        ]
+        weekly_slots = [
+            {
+                "id": "e1",
+                "text": "alpha",
+                "trait_weights": {k: 0.05 for k in DEFAULT_TRAIT_KEYS},
+                "category": "Learning",
+            },
+            {
+                "id": "e2",
+                "text": "beta",
+                "trait_weights": {k: 0.05 for k in DEFAULT_TRAIT_KEYS},
+                "category": "Social",
+            },
+        ]
+        handled: set[int] = set()
+        week_lines: list[str] = []
+        current_rx: list[dict] = []
+        event_descriptions = ["alpha", "beta"]
+        week_history: list[dict] = []
+
+        fill_unanswered_events_with_ignore_zero(
+            traits=traits,
+            weekly_slots=weekly_slots,
+            handled_events=handled,
+            week_reaction_lines=week_lines,
+            current_week_reactions=current_rx,
+        )
+        advance_game_week(
+            child=child,
+            traits=traits,
+            calendar_week=2,
+            weekly_slots=weekly_slots,
+            handled_events=handled,
+            week_reaction_lines=week_lines,
+            current_week_reactions=current_rx,
+            event_descriptions=event_descriptions,
+            week_history=week_history,
+            events_catalog=catalog,
+            rng=rng,
+        )
+        self.assertEqual(len(week_history), 1)
+        rx = week_history[0].get("reactions") or []
+        self.assertEqual(len(rx), 2)
+        self.assertTrue(all(r.get("reaction") == "Ignore" for r in rx))
+
     def test_apply_auto_reactions_guide_updates_traits(self) -> None:
         settings = GameSettings(
             auto_play_reaction_mode="guide",

@@ -27,6 +27,7 @@ from game.settings import GameSettings
 from game.simulation import (
     advance_game_week,
     apply_auto_reactions_current_week,
+    fill_unanswered_events_with_ignore_zero,
     format_autoplay_highlight_line,
     format_batch_trait_summary,
     normalize_age_calendar_week,
@@ -319,6 +320,12 @@ class GameMainWindow:
         self._child["age_years"] = 3
         self._calendar_week = normalize_age_calendar_week(self._child, self._calendar_week)
         self._child["calendar_week"] = self._calendar_week
+        raw_notes = self._child.get("simulation_notes")
+        notes: list = raw_notes if isinstance(raw_notes, list) else []
+        self._child["simulation_notes"] = notes
+        msg = "Years 0–2 not simulated (jumped to age 3 via options)."
+        if msg not in notes:
+            notes.append(msg)
         self._resample_weekly_events()
         self._snapshot_trait_week_start()
         self._stats_blurb = "Options: ages 0–2 skipped — child set to age 3 for faster play (placeholder)."
@@ -476,6 +483,8 @@ class GameMainWindow:
             )
             body = "(Omitting per-week reaction text in this panel while batch summaries are enabled.)"
         else:
+            ev_texts = [str(s.get("text", "")) for s in self._weekly_slots]
+            last_line = self._week_reaction_lines[-1] if self._week_reaction_lines else None
             feedback = build_weekly_narrative_feedback(
                 calendar_week=self._calendar_week,
                 child_name=name,
@@ -486,6 +495,8 @@ class GameMainWindow:
                 simulation_target_years=self._settings.simulation_length_years,
                 simulated_years_approx=sy,
                 auto_uneventful_note=auto_note,
+                event_summaries=ev_texts,
+                last_reaction_summary=last_line,
             )
             body = (
                 "\n".join(self._week_reaction_lines)
@@ -933,6 +944,13 @@ class GameMainWindow:
             messagebox.showinfo("Next week", "Stop fast-forward first.")
             return
         self._narrative_auto_uneventful = False
+        fill_unanswered_events_with_ignore_zero(
+            traits=self._traits,
+            weekly_slots=self._weekly_slots,
+            handled_events=self._handled_events,
+            week_reaction_lines=self._week_reaction_lines,
+            current_week_reactions=self._current_week_reactions,
+        )
         self._advance_week()
         self.refresh_all()
 

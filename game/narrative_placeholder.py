@@ -3,6 +3,13 @@
 from __future__ import annotations
 
 
+def _snippet(text: str, limit: int = 120) -> str:
+    s = text.replace("\n", " ").strip()
+    if len(s) <= limit:
+        return s
+    return s[: limit - 1] + "…"
+
+
 def build_weekly_narrative_feedback(
     *,
     calendar_week: int,
@@ -14,6 +21,8 @@ def build_weekly_narrative_feedback(
     simulation_target_years: int,
     simulated_years_approx: float,
     auto_uneventful_note: bool = False,
+    event_summaries: list[str] | None = None,
+    last_reaction_summary: str | None = None,
 ) -> str:
     """Short neutral placeholder tied to events / trait drift / run progress."""
     parts: list[str] = [
@@ -51,5 +60,15 @@ def build_weekly_narrative_feedback(
                 parts.append("Net temperament shift this week reads slightly tighter (placeholder).")
             else:
                 parts.append("Net temperament stayed within a narrow band (placeholder).")
+
+    if event_summaries:
+        for i, raw in enumerate(event_summaries, start=1):
+            snip = _snippet(str(raw), 120)
+            if snip:
+                parts.append(f"Event {i} snapshot: {snip} (placeholder).")
+
+    tail = (last_reaction_summary or "").strip()
+    if tail:
+        parts.append(f"Latest log line: {tail} (placeholder).")
 
     return " ".join(parts)

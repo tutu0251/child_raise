@@ -79,6 +79,10 @@ def main() -> None:
         gender=choices["gender"],
         temperament=choices["temperament"],
         calendar_week=1,
+        intelligence=choices.get("intelligence"),
+        social_tendency=choices.get("social_tendency"),
+        health=choices.get("health"),
+        energy=choices.get("energy"),
     )
     child, traits = profile_to_game_child(profile)
 
