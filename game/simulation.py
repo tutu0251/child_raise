@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import random
 import uuid
+from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -32,6 +33,74 @@ def format_batch_trait_summary(deltas: dict[str, int]) -> str:
     return ", ".join(parts)
 
 
+def format_autoplay_batch_line(
+    *,
+    sy_lo: float,
+    sy_hi: float,
+    weeks: int,
+    event_slot_count: int,
+    reaction_counts: dict[str, int] | Counter[str],
+    trait_deltas: dict[str, int],
+    tag: str = "",
+) -> str:
+    """One stored line for the auto-play batch log (GUI + end-of-run analysis)."""
+    rc = Counter(reaction_counts)
+    rc_s = ", ".join(f"{k}:{rc[k]}" for k in sorted(rc.keys()) if rc[k]) or "none"
+    tr = format_batch_trait_summary(trait_deltas)
+    extra = f" {tag}".rstrip()
+    return (
+        f"~{sy_lo:.2f}–{sy_hi:.2f}y · {weeks}w{extra}: "
+        f"{event_slot_count} event-slot(s); reactions [{rc_s}]; traits: {tr}"
+    )
+
+
+def infer_developmental_milestone_kind(slot: dict) -> str | None:
+    """
+    Tag milestone-adjacent weeks without requiring JSON schema changes.
+    Returns a short kind string for highlight grouping.
+    """
+    tid = str(slot.get("id") or "").lower()
+    txt = str(slot.get("text") or "").lower()
+    blob = f"{tid} {txt}"
+    if any(
+        p in blob
+        for p in (
+            "first word",
+            "first real word",
+            "first coo",
+            "coos into",
+            "babbling",
+            "first babble",
+        )
+    ):
+        return "first_words"
+    if any(
+        p in blob
+        for p in (
+            "first steps",
+            "took first steps",
+            "first step",
+            "walking independently",
+            "walks independently",
+            "stood alone",
+            "pulls to stand",
+        )
+    ):
+        return "first_walking"
+    if any(
+        p in blob
+        for p in (
+            "made their own decision",
+            "chose for themselves",
+            "their own choice",
+            "independent choice",
+            "insisted on their way",
+        )
+    ):
+        return "independent_choice"
+    return None
+
+
 def format_autoplay_highlight_line(h: dict) -> str:
     kinds = h.get("kinds") or []
     kind_lbl = "/".join(str(x) for x in kinds) if kinds else "event"
@@ -46,7 +115,7 @@ def format_autoplay_highlight_line(h: dict) -> str:
     if txt:
         detail = f"{detail} — {txt}".strip(" —") if detail else txt
     peak = h.get("trait_delta_peak")
-    if peak is not None and "major_trait" in kinds:
+    if peak is not None and ("major_trait" in kinds or "trait_shift" in kinds):
         detail = f"{detail} (max |Δ|={peak})".strip()
     return f"{head}: {detail}" if detail else head
 
@@ -87,6 +156,9 @@ def pick_auto_reaction_and_intensity(settings: GameSettings, rng: random.Random)
         reaction = "Guide"
     elif mode == "encourage":
         reaction = "Encourage"
+    elif mode == "neutral":
+        reaction = rng.choice(["Guide", "Encourage"])
+        return reaction, 5
     else:
         kinds = list(REACTION_KINDS)
         wmap = settings.auto_play_random_reaction_weights
@@ -226,7 +298,8 @@ def apply_auto_reactions_current_week(
 ) -> int:
     applied = 0
     collect = highlight_sink is not None and getattr(settings, "auto_play_collect_highlights", True)
-    threshold = int(getattr(settings, "auto_play_major_trait_delta", 8))
+    sig_th = int(getattr(settings, "auto_play_significant_trait_delta", 5))
+    major_th = int(getattr(settings, "auto_play_major_trait_delta", 8))
     for i in range(len(weekly_slots)):
         if i in handled_events:
             continue
@@ -259,13 +332,19 @@ def apply_auto_reactions_current_week(
             rarity = str(slot.get("rarity") or "").strip().lower()
             peak = max((abs(v) for v in deltas.values()), default=0)
             kinds: list[str] = []
+            dev = infer_developmental_milestone_kind(slot)
+            if dev:
+                kinds.append(dev)
             if cat == "Milestone":
                 kinds.append("milestone")
             if rarity == "rare":
                 kinds.append("rare")
-            if peak >= threshold:
+            if peak >= sig_th:
+                kinds.append("trait_shift")
+            if peak >= major_th:
                 kinds.append("major_trait")
             if kinds:
+                kinds = list(dict.fromkeys(kinds))
                 highlight_sink.append(
                     {
                         "kinds": kinds,
@@ -426,7 +505,9 @@ __all__ = [
     "build_autoplay_context_from_profile",
     "finalize_week_snapshot",
     "format_autoplay_highlight_line",
+    "format_autoplay_batch_line",
     "format_batch_trait_summary",
+    "infer_developmental_milestone_kind",
     "normalize_age_calendar_week",
     "pick_auto_reaction_and_intensity",
     "run_autoplay_until_complete",

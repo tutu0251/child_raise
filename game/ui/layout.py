@@ -5,6 +5,7 @@ from __future__ import annotations
 import random
 import re
 import uuid
+from collections import Counter
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, simpledialog, ttk
@@ -28,6 +29,7 @@ from game.simulation import (
     advance_game_week,
     apply_auto_reactions_current_week,
     fill_unanswered_events_with_ignore_zero,
+    format_autoplay_batch_line,
     format_autoplay_highlight_line,
     format_batch_trait_summary,
     normalize_age_calendar_week,
@@ -110,7 +112,11 @@ class GameMainWindow:
         self._ff_batch_anchor: dict[str, int] | None = None
         self._ff_batch_start_sy: float = 0.0
         self._ff_batch_active_band: str | None = None
+        self._ff_batch_active_size: int = 0
+        self._ff_batch_event_slots: int = 0
+        self._ff_batch_rx_counter: Counter[str] = Counter()
         self._ff_total_weeks_approx: float = 1.0
+        self._restart_new_game: bool = False
 
         if resume_payload is not None:
             self._restore_save_payload(resume_payload)
@@ -162,6 +168,32 @@ class GameMainWindow:
 
         self.root.update_idletasks()
         self.root.deiconify()
+        self.root.protocol("WM_DELETE_WINDOW", self._on_window_close)
+
+    def _on_window_close(self) -> None:
+        self._restart_new_game = False
+        try:
+            self.root.destroy()
+        except tk.TclError:
+            pass
+
+    def _on_new_game_request(self) -> None:
+        if self._auto_play_active:
+            messagebox.showinfo(
+                "New game",
+                "Stop fast-forward first, then choose New game again.",
+                parent=self.root,
+            )
+            return
+        if not messagebox.askyesno(
+            "New game",
+            "Return to the setup dialog and start fresh?\n\n"
+            "This window will close. Save now if you want to keep this branch.",
+            parent=self.root,
+        ):
+            return
+        self._restart_new_game = True
+        self.root.destroy()
 
     def _bind_summary_wraplength(self, left_inner: ttk.Frame) -> None:
         """Keep stats hint readable when the left panel is resized."""
@@ -278,6 +310,19 @@ class GameMainWindow:
         self.root.after(120, _open)
 
     def _show_personality_analysis_modal(self) -> None:
+        branch_compare = ""
+        try:
+            paths = list_save_paths(self._save_dir)
+            if len(paths) >= 2:
+                a, b = load_save(paths[0]), load_save(paths[1])
+                cmp_body = format_branch_comparison(a, b)
+                branch_compare = (
+                    f"Latest two saves in {self._save_dir.name}/ (newest first):\n\n"
+                    f"{cmp_body[:4000]}{'…' if len(cmp_body) > 4000 else ''}"
+                )
+        except OSError:
+            branch_compare = ""
+
         body = build_personality_analysis(
             child=self._child,
             traits=self._traits,
@@ -285,6 +330,8 @@ class GameMainWindow:
             simulation_length_years=self._settings.simulation_length_years,
             simulated_years_approx=self._simulated_years(),
             autoplay_highlights=self._auto_play_highlights if self._auto_play_highlights else None,
+            autoplay_batch_summaries=self._auto_play_batch_log if self._auto_play_batch_log else None,
+            branch_comparison_text=branch_compare or None,
         )
         top = tk.Toplevel(self.root)
         top.title("Personality analysis — run complete")
@@ -296,7 +343,8 @@ class GameMainWindow:
             frm,
             text=(
                 f"Reached about {self._settings.simulation_length_years} simulated years. "
-                "You can keep playing, save a snapshot, or compare branches."
+                "You can keep playing, save a snapshot, compare branches, or start New game "
+                "to return to setup."
             ),
             wraplength=480,
         ).pack(anchor=tk.W, pady=(0, 8))
@@ -309,7 +357,23 @@ class GameMainWindow:
         txt.config(state=tk.DISABLED)
         bf = ttk.Frame(top, padding=(10, 0, 10, 10))
         bf.pack(fill=tk.X)
-        ttk.Button(bf, text="Close", command=top.destroy).pack(side=tk.RIGHT)
+
+        def close_modal() -> None:
+            top.destroy()
+
+        def new_game_from_modal() -> None:
+            if not messagebox.askyesno(
+                "New game",
+                "Close this analysis and return to the new-game setup dialog?",
+                parent=top,
+            ):
+                return
+            self._restart_new_game = True
+            top.destroy()
+            self.root.destroy()
+
+        ttk.Button(bf, text="New game", command=new_game_from_modal).pack(side=tk.RIGHT, padx=(8, 0))
+        ttk.Button(bf, text="Close", command=close_modal).pack(side=tk.RIGHT)
 
     def _apply_skip_infant_toddler_if_enabled(self) -> None:
         if not self._settings.skip_years_zero_to_two:
@@ -476,7 +540,7 @@ class GameMainWindow:
             and self._ff_weeks_in_batch > 0
         )
         if use_compact_ff:
-            bsz = self._autoplay_batch_size(self._ff_batch_active_band)
+            bsz = max(1, int(self._ff_batch_active_size or 1))
             feedback = (
                 f"Fast-forward: batch rollup active (~{sy:.2f}y). "
                 f"Progress in batch {self._ff_weeks_in_batch}/{bsz} weeks — per-week lines stay in history."
@@ -626,40 +690,46 @@ class GameMainWindow:
         age = self._child.get("age_years", "?")
         return f"Age {age} · Week {self._calendar_week}"
 
-    def _autoplay_band_for_sy(self, sy: float) -> str | None:
+    def _autoplay_batch_rule(self, sy: float) -> tuple[str | None, int]:
+        """Return (band_key, weeks_per_flush) for batch summaries; (None, 0) when disabled."""
         s = self._settings
         if not s.auto_play_batch_summaries:
-            return None
+            return None, 0
+        if s.auto_play_fixed_batch_weeks > 0:
+            return "fixed", max(1, int(s.auto_play_fixed_batch_weeks))
         if s.auto_play_early_batch_age_lo <= sy < s.auto_play_early_batch_age_hi:
-            return "early"
+            return "early", max(1, int(s.auto_play_batch_weeks_early))
         if s.auto_play_batch_weeks_later > 0 and sy >= s.auto_play_early_batch_age_hi:
-            return "later"
-        return None
-
-    def _autoplay_batch_size(self, band: str | None) -> int:
-        if band == "early":
-            return int(self._settings.auto_play_batch_weeks_early)
-        if band == "later":
-            return int(self._settings.auto_play_batch_weeks_later)
-        return 0
+            return "later", int(s.auto_play_batch_weeks_later)
+        return None, 0
 
     def _ff_flush_autoplay_batch(self, *, tag: str = "") -> None:
         if self._ff_weeks_in_batch <= 0 or self._ff_batch_anchor is None:
             self._ff_weeks_in_batch = 0
             self._ff_batch_anchor = None
             self._ff_batch_active_band = None
+            self._ff_batch_active_size = 0
+            self._ff_batch_event_slots = 0
+            self._ff_batch_rx_counter.clear()
             return
         d = trait_delta_between(self._ff_batch_anchor, self._traits)
         sy_end = self._simulated_years()
-        extra = f" {tag}".rstrip()
-        line = (
-            f"~{self._ff_batch_start_sy:.2f}–{sy_end:.2f}y · {self._ff_weeks_in_batch}w{extra}: "
-            f"{format_batch_trait_summary(d)}"
+        line = format_autoplay_batch_line(
+            sy_lo=self._ff_batch_start_sy,
+            sy_hi=sy_end,
+            weeks=self._ff_weeks_in_batch,
+            event_slot_count=self._ff_batch_event_slots,
+            reaction_counts=self._ff_batch_rx_counter,
+            trait_deltas=d,
+            tag=tag,
         )
         self._auto_play_batch_log.append(line)
         self._ff_weeks_in_batch = 0
         self._ff_batch_anchor = None
         self._ff_batch_active_band = None
+        self._ff_batch_active_size = 0
+        self._ff_batch_event_slots = 0
+        self._ff_batch_rx_counter.clear()
 
     def _build_controls(self, parent: ttk.Frame) -> None:
         lf = ttk.LabelFrame(parent, text="Controls", padding=8)
@@ -671,6 +741,7 @@ class GameMainWindow:
         for label, cmd in [
             ("Save", self._on_save),
             ("Resume", self._on_resume),
+            ("New game", self._on_new_game_request),
             ("Compare saves", self._compare_branches_dialog),
             ("Next week", self._on_next_week),
             ("Auto week (<6)", self._on_auto_simulate_week),
@@ -788,6 +859,9 @@ class GameMainWindow:
         self._ff_weeks_in_batch = 0
         self._ff_batch_anchor = None
         self._ff_batch_active_band = None
+        self._ff_batch_active_size = 0
+        self._ff_batch_event_slots = 0
+        self._ff_batch_rx_counter.clear()
         self._ff_batch_start_sy = 0.0
         self._auto_play_active = True
         self._auto_play_stop_requested = False
@@ -822,26 +896,36 @@ class GameMainWindow:
                 return
 
             sy_before = self._simulated_years()
-            band = self._autoplay_band_for_sy(sy_before)
+            new_band, new_size = self._autoplay_batch_rule(sy_before)
             if self._ff_weeks_in_batch > 0 and self._ff_batch_active_band is not None:
-                if band != self._ff_batch_active_band:
+                if new_band != self._ff_batch_active_band or new_size == 0:
                     self._ff_flush_autoplay_batch(tag="(boundary)")
-                    band = self._autoplay_band_for_sy(self._simulated_years())
+                    new_band, new_size = self._autoplay_batch_rule(self._simulated_years())
 
-            if band is not None and self._ff_weeks_in_batch == 0:
+            if new_size > 0 and self._ff_weeks_in_batch == 0:
                 self._ff_batch_anchor = dict(self._traits)
                 self._ff_batch_start_sy = sy_before
-                self._ff_batch_active_band = band
+                self._ff_batch_active_band = new_band
+                self._ff_batch_active_size = new_size
+                self._ff_batch_event_slots = 0
+                self._ff_batch_rx_counter.clear()
 
             n_summary = int(self._settings.auto_play_summary_every_n_weeks)
             self._apply_auto_reactions_for_current_week(prefix="[Auto-play] ")
+            self._ff_batch_event_slots += len(self._weekly_slots)
+            for r in self._current_week_reactions:
+                self._ff_batch_rx_counter[str(r.get("reaction") or "?")] += 1
             self._advance_week()
 
             sy_after = self._simulated_years()
-            if band is not None:
+            if self._ff_batch_active_size > 0 and self._ff_batch_active_band is not None:
                 self._ff_weeks_in_batch += 1
-                bsize = self._autoplay_batch_size(band)
-                crossed_hi = band == "early" and sy_after >= float(self._settings.auto_play_early_batch_age_hi)
+                bsize = max(1, int(self._ff_batch_active_size))
+                crossed_hi = (
+                    self._ff_batch_active_band == "early"
+                    and self._settings.auto_play_fixed_batch_weeks <= 0
+                    and sy_after >= float(self._settings.auto_play_early_batch_age_hi)
+                )
                 partial = crossed_hi and self._ff_weeks_in_batch < bsize
                 if crossed_hi or self._ff_weeks_in_batch >= bsize:
                     self._ff_flush_autoplay_batch(tag="(partial)" if partial else "")
@@ -1082,8 +1166,10 @@ class GameMainWindow:
         self._branch_panel.set_lines(self._branch_lines())
         self.root.after_idle(self._schedule_auto_uneventful)
 
-    def run(self) -> None:
+    def run(self) -> bool:
+        """Block until the window is closed. Returns True if the player chose New game (restart loop)."""
         self.root.mainloop()
+        return self._restart_new_game
 
 
 def main() -> None:

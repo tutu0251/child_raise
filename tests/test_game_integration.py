@@ -16,7 +16,7 @@ from game.persistence import (
     render_saved_branch_forest,
     traits_compact,
 )
-from game.settings import GameSettings
+from game.settings import AUTO_PLAY_REACTION_MODES, GameSettings
 from game.template_data import (
     DEFAULT_ENERGY,
     DEFAULT_HEALTH,
@@ -37,8 +37,11 @@ from game.simulation import (
     apply_auto_reactions_current_week,
     build_autoplay_context_from_profile,
     fill_unanswered_events_with_ignore_zero,
+    format_autoplay_batch_line,
     format_batch_trait_summary,
+    infer_developmental_milestone_kind,
     normalize_age_calendar_week,
+    pick_auto_reaction_and_intensity,
     run_autoplay_until_complete,
     trait_delta_between,
 )
@@ -408,6 +411,20 @@ class TestSettings(unittest.TestCase):
         h = GameSettings.from_dict(g.to_dict())
         self.assertEqual(h.simulation_length_years, 16)
         self.assertTrue(h.batch_early_years_stats)
+
+    def test_autoplay_modes_include_neutral(self) -> None:
+        self.assertIn("neutral", AUTO_PLAY_REACTION_MODES)
+
+    def test_new_autoplay_settings_roundtrip(self) -> None:
+        g = GameSettings(
+            auto_play_fixed_batch_weeks=12,
+            auto_play_significant_trait_delta=4,
+            auto_play_reaction_mode="neutral",
+        )
+        h = GameSettings.from_dict(g.to_dict())
+        self.assertEqual(h.auto_play_fixed_batch_weeks, 12)
+        self.assertEqual(h.auto_play_significant_trait_delta, 4)
+        self.assertEqual(h.auto_play_reaction_mode, "neutral")
 
 
 class TestNarrativePlaceholder(unittest.TestCase):
@@ -855,6 +872,90 @@ class TestAutoPlaySimulation(unittest.TestCase):
         )
         self.assertIn("Auto-play key events", text)
         self.assertIn("milestone", text)
+
+    def test_pick_auto_reaction_neutral(self) -> None:
+        s = GameSettings(auto_play_reaction_mode="neutral")
+        rng = __import__("random").Random(0)
+        for _ in range(20):
+            rx, intensity = pick_auto_reaction_and_intensity(s, rng)
+            self.assertIn(rx, ("Guide", "Encourage"))
+            self.assertEqual(intensity, 5)
+
+    def test_format_autoplay_batch_line_includes_counts(self) -> None:
+        from collections import Counter
+
+        line = format_autoplay_batch_line(
+            sy_lo=1.0,
+            sy_hi=1.08,
+            weeks=4,
+            event_slot_count=9,
+            reaction_counts=Counter({"Guide": 5, "Encourage": 4}),
+            trait_deltas={"Openness": 2},
+            tag="(test)",
+        )
+        self.assertIn("9 event-slot", line)
+        self.assertIn("Guide:5", line)
+        self.assertIn("Openness +2", line)
+
+    def test_infer_developmental_milestone_kind(self) -> None:
+        self.assertEqual(
+            infer_developmental_milestone_kind({"id": "x", "text": "Today came their first word."}),
+            "first_words",
+        )
+        self.assertEqual(
+            infer_developmental_milestone_kind({"id": "walk_1", "text": "They took first steps across the rug."}),
+            "first_walking",
+        )
+        self.assertIsNone(infer_developmental_milestone_kind({"id": "x", "text": "walking away quietly"}))
+
+    def test_highlight_trait_shift_at_significant_threshold(self) -> None:
+        settings = GameSettings(
+            auto_play_reaction_mode="guide",
+            auto_play_intensity_min=10,
+            auto_play_intensity_max=10,
+            auto_play_collect_highlights=True,
+            auto_play_significant_trait_delta=3,
+            auto_play_major_trait_delta=50,
+        )
+        rng = __import__("random").Random(0)
+        traits = {k: 50 for k in DEFAULT_TRAIT_KEYS}
+        sink: list[dict] = []
+        slots = [
+            {
+                "id": "e1",
+                "text": "A learning moment",
+                "trait_weights": {k: 0.12 for k in DEFAULT_TRAIT_KEYS},
+                "category": "Learning",
+            }
+        ]
+        apply_auto_reactions_current_week(
+            traits=traits,
+            weekly_slots=slots,
+            handled_events=set(),
+            week_reaction_lines=[],
+            current_week_reactions=[],
+            settings=settings,
+            rng=rng,
+            highlight_sink=sink,
+            calendar_week=1,
+            simulated_years_approx=1.0,
+        )
+        kinds_flat = [k for h in sink for k in (h.get("kinds") or ())]
+        self.assertIn("trait_shift", kinds_flat)
+
+    def test_personality_analysis_batch_and_branch_sections(self) -> None:
+        traits = {k: 50 for k in DEFAULT_TRAIT_KEYS}
+        text = build_personality_analysis(
+            child={"name": "Pat", "branch": "B"},
+            traits=traits,
+            week_history=[],
+            simulation_length_years=16,
+            simulated_years_approx=16.0,
+            autoplay_batch_summaries=["~1.00–1.02y · 2w: 4 event-slot(s); traits: traits ~flat"],
+            branch_comparison_text="Save A vs B: traits differ slightly.",
+        )
+        self.assertIn("Fast-forward batch summaries", text)
+        self.assertIn("Branch comparison", text)
 
 
 if __name__ == "__main__":

@@ -26,6 +26,8 @@ def build_personality_analysis(
     simulation_length_years: int,
     simulated_years_approx: float,
     autoplay_highlights: list[dict] | None = None,
+    autoplay_batch_summaries: list[str] | None = None,
+    branch_comparison_text: str | None = None,
 ) -> str:
     name = str(child.get("name", "Child"))
     branch = str(child.get("branch", ""))
@@ -69,6 +71,14 @@ def build_personality_analysis(
             lines.append(f"  {format_autoplay_highlight_line(h)}")
         if len(autoplay_highlights) > 80:
             lines.append(f"  … and {len(autoplay_highlights) - 80} more")
+
+    if autoplay_batch_summaries:
+        lines.extend(["", "--- Fast-forward batch summaries ---"])
+        for ln in autoplay_batch_summaries[-40:]:
+            lines.append(f"  {ln}")
+
+    if branch_comparison_text:
+        lines.extend(["", "--- Branch comparison (latest saves) ---", branch_comparison_text])
     return "\n".join(lines)
 
 

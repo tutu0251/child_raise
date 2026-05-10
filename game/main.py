@@ -59,55 +59,58 @@ def _opening_stats_blurb(
 
 
 def main() -> None:
-    rng = random.Random()
-
     profiles = load_child_templates(DATA_DIR / "child_templates.json")
     catalog = load_events_templates(DATA_DIR / "events_templates.json")
 
-    root = tk.Tk()
-    root.withdraw()
-    root.update_idletasks()
-    choices = show_new_game_dialog(root, profiles)
-    root.destroy()
+    while True:
+        rng = random.Random()
 
-    if choices is None:
-        return
+        root = tk.Tk()
+        root.withdraw()
+        root.update_idletasks()
+        choices = show_new_game_dialog(root, profiles)
+        root.destroy()
 
-    profile = apply_new_game_choices(
-        choices["template"],
-        start_age_years=choices["start_age_years"],
-        gender=choices["gender"],
-        temperament=choices["temperament"],
-        calendar_week=1,
-        intelligence=choices.get("intelligence"),
-        social_tendency=choices.get("social_tendency"),
-        health=choices.get("health"),
-        energy=choices.get("energy"),
-    )
-    child, traits = profile_to_game_child(profile)
+        if choices is None:
+            return
 
-    age_years = int(child["age_years"])
-    calendar_week = int(child["calendar_week"])
-    name = str(child["name"])
-    profile_id = profile.get("id") if isinstance(profile.get("id"), str) else None
+        profile = apply_new_game_choices(
+            choices["template"],
+            start_age_years=choices["start_age_years"],
+            gender=choices["gender"],
+            temperament=choices["temperament"],
+            calendar_week=1,
+            intelligence=choices.get("intelligence"),
+            social_tendency=choices.get("social_tendency"),
+            health=choices.get("health"),
+            energy=choices.get("energy"),
+        )
+        child, traits = profile_to_game_child(profile)
 
-    summary = _opening_summary(name, profile_id)
-    stats_blurb = _opening_stats_blurb(
-        catalog,
-        age_years=age_years,
-        calendar_week=calendar_week,
-        child_name=name,
-        rng=rng,
-    )
+        age_years = int(child["age_years"])
+        calendar_week = int(child["calendar_week"])
+        name = str(child["name"])
+        profile_id = profile.get("id") if isinstance(profile.get("id"), str) else None
 
-    GameMainWindow(
-        child=child,
-        traits=traits,
-        events_catalog=catalog,
-        rng=rng,
-        summary_narrative=summary,
-        stats_blurb=stats_blurb,
-    ).run()
+        summary = _opening_summary(name, profile_id)
+        stats_blurb = _opening_stats_blurb(
+            catalog,
+            age_years=age_years,
+            calendar_week=calendar_week,
+            child_name=name,
+            rng=rng,
+        )
+
+        restart = GameMainWindow(
+            child=child,
+            traits=traits,
+            events_catalog=catalog,
+            rng=rng,
+            summary_narrative=summary,
+            stats_blurb=stats_blurb,
+        ).run()
+        if not restart:
+            return
 
 
 if __name__ == "__main__":

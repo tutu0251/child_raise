@@ -18,7 +18,7 @@ def show_options_dialog(parent: tk.Misc, settings: GameSettings) -> bool:
     top.title("Options")
     top.transient(parent)
     top.grab_set()
-    top.minsize(440, 640)
+    top.minsize(440, 720)
 
     result = {"ok": False}
 
@@ -86,7 +86,12 @@ def show_options_dialog(parent: tk.Misc, settings: GameSettings) -> bool:
     for m in AUTO_PLAY_REACTION_MODES:
         ttk.Radiobutton(
             mf,
-            text={"random": "Random reactions", "guide": "Always Guide", "encourage": "Always Encourage"}[m],
+            text={
+                "random": "Random reactions",
+                "neutral": "Neutral (Guide or Encourage, intensity 5)",
+                "guide": "Always Guide",
+                "encourage": "Always Encourage",
+            }[m],
             variable=mode_var,
             value=m,
         ).pack(anchor=tk.W)
@@ -157,21 +162,38 @@ def show_options_dialog(parent: tk.Misc, settings: GameSettings) -> bool:
     ttk.Label(bw, text="Major |Δtrait|").pack(side=tk.LEFT)
     ttk.Spinbox(bw, from_=1, to=50, textvariable=major_d_var, width=5).pack(side=tk.LEFT, padx=(4, 0))
 
+    fixed_batch_var = tk.IntVar(value=int(settings.auto_play_fixed_batch_weeks))
+    ttk.Label(frm, text="Fixed batch every N weeks (0 = use age bands only):").grid(
+        row=19, column=0, columnspan=2, sticky=tk.W, pady=(8, 2)
+    )
+    ttk.Spinbox(frm, from_=0, to=520, textvariable=fixed_batch_var, width=8).grid(
+        row=20, column=0, sticky=tk.W
+    )
+
+    sig_delta_var = tk.IntVar(value=int(settings.auto_play_significant_trait_delta))
+    ttk.Label(frm, text="Highlight trait shift when per-event max |Δtrait| ≥:").grid(
+        row=21, column=0, columnspan=2, sticky=tk.W, pady=(8, 2)
+    )
+    ttk.Spinbox(frm, from_=1, to=50, textvariable=sig_delta_var, width=8).grid(
+        row=22, column=0, sticky=tk.W
+    )
+
     hint = ttk.Label(
         frm,
         text=(
             "Uneventful auto-advance caps after many empty weeks to keep the UI responsive. "
             "Skip 0–2 applies once when you save options if the child is below age 3. "
             "Fast-forward uses the auto-play reaction mode and intensity above. "
+            "Fixed batch N weeks overrides early/later band sizes when N > 0 (e.g. 4, 8, 12). "
             "Mark rare events in JSON with \"rarity\": \"rare\" on an event template."
         ),
         wraplength=400,
         foreground=theme.COLOR_NEUTRAL,
     )
-    hint.grid(row=19, column=0, columnspan=2, sticky=tk.W, pady=(12, 8))
+    hint.grid(row=23, column=0, columnspan=2, sticky=tk.W, pady=(12, 8))
 
     btn_row = ttk.Frame(frm)
-    btn_row.grid(row=20, column=0, columnspan=2, sticky=tk.E)
+    btn_row.grid(row=24, column=0, columnspan=2, sticky=tk.E)
 
     def on_ok() -> None:
         settings.skip_years_zero_to_two = skip_var.get()
@@ -191,6 +213,8 @@ def show_options_dialog(parent: tk.Misc, settings: GameSettings) -> bool:
         settings.auto_play_batch_weeks_early = int(early_w_var.get())
         settings.auto_play_batch_weeks_later = int(later_w_var.get())
         settings.auto_play_major_trait_delta = int(major_d_var.get())
+        settings.auto_play_fixed_batch_weeks = int(fixed_batch_var.get())
+        settings.auto_play_significant_trait_delta = int(sig_delta_var.get())
         settings.__post_init__()
         result["ok"] = True
         top.destroy()
