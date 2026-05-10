@@ -5,7 +5,7 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import ttk
 
-from game.settings import GameSettings
+from game.settings import AUTO_PLAY_REACTION_MODES, GameSettings
 from game.ui import theme
 
 
@@ -18,7 +18,7 @@ def show_options_dialog(parent: tk.Misc, settings: GameSettings) -> bool:
     top.title("Options")
     top.transient(parent)
     top.grab_set()
-    top.minsize(420, 310)
+    top.minsize(440, 520)
 
     result = {"ok": False}
 
@@ -71,19 +71,60 @@ def show_options_dialog(parent: tk.Misc, settings: GameSettings) -> bool:
             side=tk.LEFT, padx=(0, 16)
         )
 
+    ttk.Label(frm, text="Auto-play / fast-forward:", font=theme.FONT_UI_HEADER).grid(
+        row=7, column=0, columnspan=2, sticky=tk.W, pady=(12, 4)
+    )
+    mode_var = tk.StringVar(
+        value=settings.auto_play_reaction_mode
+        if settings.auto_play_reaction_mode in AUTO_PLAY_REACTION_MODES
+        else "random"
+    )
+    mf = ttk.Frame(frm)
+    mf.grid(row=8, column=0, columnspan=2, sticky=tk.W)
+    for m in AUTO_PLAY_REACTION_MODES:
+        ttk.Radiobutton(
+            mf,
+            text={"random": "Random reactions", "guide": "Always Guide", "encourage": "Always Encourage"}[m],
+            variable=mode_var,
+            value=m,
+        ).pack(anchor=tk.W)
+
+    ttk.Label(frm, text="Auto-play intensity (0–10):", font=theme.FONT_UI_HEADER).grid(
+        row=9, column=0, sticky=tk.W, pady=(8, 2)
+    )
+    int_row = ttk.Frame(frm)
+    int_row.grid(row=10, column=0, columnspan=2, sticky=tk.W)
+    ttk.Label(int_row, text="Min").pack(side=tk.LEFT)
+    int_min_var = tk.IntVar(value=settings.auto_play_intensity_min)
+    int_max_var = tk.IntVar(value=settings.auto_play_intensity_max)
+    ttk.Spinbox(int_row, from_=0, to=10, textvariable=int_min_var, width=5).pack(
+        side=tk.LEFT, padx=(4, 12)
+    )
+    ttk.Label(int_row, text="Max").pack(side=tk.LEFT)
+    ttk.Spinbox(int_row, from_=0, to=10, textvariable=int_max_var, width=5).pack(side=tk.LEFT, padx=(4, 0))
+
+    summary_n_var = tk.IntVar(value=int(settings.auto_play_summary_every_n_weeks))
+    ttk.Label(frm, text="Auto-play milestone summary every N weeks (0 = off):").grid(
+        row=11, column=0, columnspan=2, sticky=tk.W, pady=(8, 2)
+    )
+    ttk.Spinbox(frm, from_=0, to=520, textvariable=summary_n_var, width=8).grid(
+        row=12, column=0, sticky=tk.W
+    )
+
     hint = ttk.Label(
         frm,
         text=(
             "Uneventful auto-advance caps after many empty weeks to keep the UI responsive. "
-            "Skip 0–2 applies once when you save options if the child is below age 3."
+            "Skip 0–2 applies once when you save options if the child is below age 3. "
+            "Fast-forward uses the auto-play reaction mode and intensity above."
         ),
         wraplength=400,
         foreground=theme.COLOR_NEUTRAL,
     )
-    hint.grid(row=7, column=0, columnspan=2, sticky=tk.W, pady=(12, 8))
+    hint.grid(row=13, column=0, columnspan=2, sticky=tk.W, pady=(12, 8))
 
     btn_row = ttk.Frame(frm)
-    btn_row.grid(row=8, column=0, columnspan=2, sticky=tk.E)
+    btn_row.grid(row=14, column=0, columnspan=2, sticky=tk.E)
 
     def on_ok() -> None:
         settings.skip_years_zero_to_two = skip_var.get()
@@ -92,6 +133,10 @@ def show_options_dialog(parent: tk.Misc, settings: GameSettings) -> bool:
         settings.show_branch_timeline_panel = branch_panel_var.get()
         ly = len_var.get()
         settings.simulation_length_years = 18 if ly != 16 else 16
+        settings.auto_play_reaction_mode = mode_var.get()
+        settings.auto_play_intensity_min = int(int_min_var.get())
+        settings.auto_play_intensity_max = int(int_max_var.get())
+        settings.auto_play_summary_every_n_weeks = int(summary_n_var.get())
         settings.__post_init__()
         result["ok"] = True
         top.destroy()

@@ -22,8 +22,19 @@ from game.persistence import (
     utc_now_iso,
 )
 from game.narrative_placeholder import build_weekly_narrative_feedback
+from game.personality_analysis import build_personality_analysis
 from game.settings import GameSettings
-from game.template_data import DEFAULT_TRAIT_KEYS, merge_child_stat_defaults, sample_weekly_events
+from game.simulation import (
+    advance_game_week,
+    apply_auto_reactions_current_week,
+    run_batch_autoplay_save_all,
+)
+from game.template_data import (
+    DEFAULT_TRAIT_KEYS,
+    load_child_templates,
+    merge_child_stat_defaults,
+    sample_weekly_events,
+)
 from game.trait_updates import REACTION_KINDS, apply_trait_deltas, format_delta_line, trait_deltas
 from game.ui.options_dialog import show_options_dialog
 from game.ui.branch_tree import BranchTreePanel
@@ -80,6 +91,14 @@ class GameMainWindow:
         self._auto_advancing_uneventful = False
         self._sim_complete_shown = False
         self._narrative_auto_uneventful = False
+        self._auto_play_active = False
+        self._auto_play_stop_requested = False
+        self._auto_play_start_sy = 0.0
+        self._auto_play_span = 1.0
+        self._btn_stop_ff: ttk.Button | None = None
+        self._btn_fast_forward: ttk.Button | None = None
+        self._auto_play_prog: ttk.Progressbar | None = None
+        self._lbl_auto_prog: ttk.Label | None = None
 
         if resume_payload is not None:
             self._restore_save_payload(resume_payload)
@@ -160,19 +179,6 @@ class GameMainWindow:
     def _update_title(self) -> None:
         self.root.title(f"{theme.WINDOW_TITLE} — {self._branch_label}")
 
-    def _finalize_week_snapshot(self) -> None:
-        self._week_history.append(
-            {
-                "calendar_week": self._calendar_week,
-                "event_texts": list(self._event_descriptions),
-                "reactions": list(self._current_week_reactions),
-                "traits_end": dict(self._traits),
-                "narrative": "\n".join(self._week_reaction_lines),
-            }
-        )
-        self._week_reaction_lines.clear()
-        self._current_week_reactions.clear()
-
     def _collect_save_payload(self) -> dict:
         return {
             "schema_version": SCHEMA_VERSION,
@@ -233,6 +239,9 @@ class GameMainWindow:
         if not self._weekly_slots:
             self._resample_weekly_events()
         self._rebuild_week_summary()
+        self._sim_complete_shown = (
+            self._simulated_years() + 1e-9 >= float(self._settings.simulation_length_years)
+        )
 
     def _snapshot_trait_week_start(self) -> None:
         self._traits_at_week_start = dict(self._traits)
@@ -249,14 +258,43 @@ class GameMainWindow:
             return
         self._sim_complete_shown = True
 
-        def _toast() -> None:
-            messagebox.showinfo(
-                "Run length",
-                f"Reached about {self._settings.simulation_length_years} simulated years (options). "
-                "You can keep playing or save a snapshot.",
-            )
+        def _open() -> None:
+            self._show_personality_analysis_modal()
 
-        self.root.after(120, _toast)
+        self.root.after(120, _open)
+
+    def _show_personality_analysis_modal(self) -> None:
+        body = build_personality_analysis(
+            child=self._child,
+            traits=self._traits,
+            week_history=self._week_history,
+            simulation_length_years=self._settings.simulation_length_years,
+            simulated_years_approx=self._simulated_years(),
+        )
+        top = tk.Toplevel(self.root)
+        top.title("Personality analysis — run complete")
+        top.transient(self.root)
+        top.minsize(520, 420)
+        frm = ttk.Frame(top, padding=10)
+        frm.pack(fill=tk.BOTH, expand=True)
+        ttk.Label(
+            frm,
+            text=(
+                f"Reached about {self._settings.simulation_length_years} simulated years. "
+                "You can keep playing, save a snapshot, or compare branches."
+            ),
+            wraplength=480,
+        ).pack(anchor=tk.W, pady=(0, 8))
+        txt = tk.Text(frm, height=20, wrap=tk.WORD, font=theme.FONT_UI)
+        ys = ttk.Scrollbar(frm, orient=tk.VERTICAL, command=txt.yview)
+        txt.configure(yscrollcommand=ys.set)
+        txt.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        ys.pack(side=tk.RIGHT, fill=tk.Y)
+        txt.insert("1.0", body)
+        txt.config(state=tk.DISABLED)
+        bf = ttk.Frame(top, padding=(10, 0, 10, 10))
+        bf.pack(fill=tk.X)
+        ttk.Button(bf, text="Close", command=top.destroy).pack(side=tk.RIGHT)
 
     def _apply_skip_infant_toddler_if_enabled(self) -> None:
         if not self._settings.skip_years_zero_to_two:
@@ -326,6 +364,9 @@ class GameMainWindow:
             return
         self._child = merge_child_stat_defaults(self._child)
         self._last_save_path = path if not fork else None
+        self._auto_play_active = False
+        self._auto_play_stop_requested = False
+        self._sync_fast_forward_widgets(idle=True)
         self._update_title()
         self.refresh_all()
 
@@ -433,17 +474,38 @@ class GameMainWindow:
         self._summary_narrative = "\n".join(parts)
 
     def _advance_week(self) -> None:
-        self._finalize_week_snapshot()
-        self._calendar_week += 1
+        self._calendar_week, self._traits_at_week_start = advance_game_week(
+            child=self._child,
+            traits=self._traits,
+            calendar_week=self._calendar_week,
+            weekly_slots=self._weekly_slots,
+            handled_events=self._handled_events,
+            week_reaction_lines=self._week_reaction_lines,
+            current_week_reactions=self._current_week_reactions,
+            event_descriptions=self._event_descriptions,
+            week_history=self._week_history,
+            events_catalog=self._events_catalog,
+            rng=self._rng,
+        )
         self._debate_highlight = self._calendar_week % 5 == 0
-        self._resample_weekly_events()
-        self._snapshot_trait_week_start()
         self._rebuild_week_summary()
         self._stats_blurb = (
             f"Week {self._calendar_week}: drew {len(self._weekly_slots)} event(s) "
             "(0–3, age-matched). Traits carry over from prior choices."
         )
         self._check_simulation_complete()
+
+    def _apply_auto_reactions_for_current_week(self, *, prefix: str = "[Auto-play] ") -> int:
+        return apply_auto_reactions_current_week(
+            traits=self._traits,
+            weekly_slots=self._weekly_slots,
+            handled_events=self._handled_events,
+            week_reaction_lines=self._week_reaction_lines,
+            current_week_reactions=self._current_week_reactions,
+            settings=self._settings,
+            rng=self._rng,
+            prefix=prefix,
+        )
 
     def _branch_lines(self) -> list[str]:
         forest = render_saved_branch_forest(
@@ -529,7 +591,22 @@ class GameMainWindow:
         ]:
             ttk.Button(row, text=label, command=cmd).pack(side=tk.LEFT, padx=(0, 6), pady=4)
 
+        self._btn_fast_forward = ttk.Button(row, text="Fast-forward…", command=self._on_fast_forward_dialog)
+        self._btn_fast_forward.pack(side=tk.LEFT, padx=(0, 6), pady=4)
+        self._btn_stop_ff = ttk.Button(row, text="Stop FF", command=self._on_stop_fast_forward, state=tk.DISABLED)
+        self._btn_stop_ff.pack(side=tk.LEFT, padx=(0, 6), pady=4)
+
+        prog_row = ttk.Frame(lf)
+        prog_row.pack(fill=tk.X, pady=(4, 0))
+        self._lbl_auto_prog = ttk.Label(prog_row, text="Fast-forward: idle")
+        self._lbl_auto_prog.pack(side=tk.LEFT, padx=(0, 8))
+        self._auto_play_prog = ttk.Progressbar(prog_row, mode="determinate", maximum=1000)
+        self._auto_play_prog.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
     def _open_options(self) -> None:
+        if self._auto_play_active:
+            messagebox.showinfo("Options", "Stop fast-forward first to change options.")
+            return
         if not show_options_dialog(self.root, self._settings):
             return
         self._apply_skip_infant_toddler_if_enabled()
@@ -537,7 +614,173 @@ class GameMainWindow:
         self._sync_branch_panel_visibility()
         self.refresh_all()
 
+    def _sync_fast_forward_widgets(self, *, idle: bool) -> None:
+        if self._btn_fast_forward is not None:
+            self._btn_fast_forward.config(state=tk.NORMAL if idle else tk.DISABLED)
+        if self._btn_stop_ff is not None:
+            self._btn_stop_ff.config(state=tk.DISABLED if idle else tk.NORMAL)
+        if self._auto_play_prog is not None:
+            if idle:
+                self._auto_play_prog["value"] = 0
+        if self._lbl_auto_prog is not None:
+            self._lbl_auto_prog.config(text="Fast-forward: idle" if idle else "Fast-forward: running…")
+
+    def _update_fast_forward_progress(self) -> None:
+        if self._auto_play_prog is None or self._lbl_auto_prog is None:
+            return
+        sy = self._simulated_years()
+        span = max(self._auto_play_span, 1e-9)
+        frac = max(0.0, min(1.0, (sy - self._auto_play_start_sy) / span))
+        self._auto_play_prog["value"] = int(1000 * frac)
+        self._lbl_auto_prog.config(
+            text=f"Fast-forward: ~{sy:.2f}y / {self._settings.simulation_length_years}y"
+        )
+
+    def _on_fast_forward_dialog(self) -> None:
+        if self._auto_play_active:
+            return
+        top = tk.Toplevel(self.root)
+        top.title("Fast-forward")
+        top.transient(self.root)
+        top.grab_set()
+        top.minsize(380, 200)
+        frm = ttk.Frame(top, padding=12)
+        frm.pack(fill=tk.BOTH, expand=True)
+        scope = tk.StringVar(value="session")
+        ttk.Label(frm, text="Run auto-play (Options define reactions & intensity):", font=theme.FONT_UI_HEADER).pack(
+            anchor=tk.W, pady=(0, 8)
+        )
+        ttk.Radiobutton(
+            frm,
+            text="This playthrough only (current window)",
+            variable=scope,
+            value="session",
+        ).pack(anchor=tk.W)
+        ttk.Radiobutton(
+            frm,
+            text="Batch all child templates → separate saves in game/save/",
+            variable=scope,
+            value="batch",
+        ).pack(anchor=tk.W)
+
+        def start() -> None:
+            top.destroy()
+            if scope.get() == "batch":
+                self._run_batch_autoplay_from_gui()
+            else:
+                self._start_fast_forward_session()
+
+        def cancel() -> None:
+            top.destroy()
+
+        br = ttk.Frame(frm)
+        br.pack(fill=tk.X, pady=(16, 0))
+        ttk.Button(br, text="Cancel", command=cancel).pack(side=tk.RIGHT, padx=(6, 0))
+        ttk.Button(br, text="Start", command=start).pack(side=tk.RIGHT)
+        top.protocol("WM_DELETE_WINDOW", cancel)
+
+    def _start_fast_forward_session(self) -> None:
+        if self._simulated_years() + 1e-9 >= float(self._settings.simulation_length_years):
+            messagebox.showinfo("Fast-forward", "Simulation length already reached — open analysis from traits or resume earlier save.")
+            self._check_simulation_complete()
+            return
+        self._auto_play_start_sy = self._simulated_years()
+        self._auto_play_span = max(
+            float(self._settings.simulation_length_years) - self._auto_play_start_sy,
+            1e-6,
+        )
+        self._auto_play_active = True
+        self._auto_play_stop_requested = False
+        self._sync_fast_forward_widgets(idle=False)
+        self._update_fast_forward_progress()
+        self.root.after(1, self._run_auto_play_step)
+
+    def _on_stop_fast_forward(self) -> None:
+        if not self._auto_play_active:
+            return
+        self._auto_play_stop_requested = True
+
+    def _run_auto_play_step(self) -> None:
+        if not self._auto_play_active:
+            return
+        try:
+            if self._auto_play_stop_requested:
+                self._auto_play_active = False
+                self._auto_play_stop_requested = False
+                self._sync_fast_forward_widgets(idle=True)
+                self.refresh_all()
+                return
+
+            if self._simulated_years() + 1e-9 >= float(self._settings.simulation_length_years):
+                self._auto_play_active = False
+                self._sync_fast_forward_widgets(idle=True)
+                self.refresh_all()
+                return
+
+            n_summary = int(self._settings.auto_play_summary_every_n_weeks)
+            self._apply_auto_reactions_for_current_week(prefix="[Auto-play] ")
+            self._advance_week()
+
+            if n_summary > 0 and self._week_history:
+                wk = int(self._week_history[-1].get("calendar_week", 0))
+                if wk % n_summary == 0:
+                    self._summary_narrative += (
+                        f"\n\n[Auto-play] Milestone: completed week {wk} "
+                        f"(~{self._simulated_years():.2f}y simulated)."
+                    )
+
+            self._update_fast_forward_progress()
+            self.refresh_all()
+
+            if self._simulated_years() + 1e-9 >= float(self._settings.simulation_length_years):
+                self._auto_play_active = False
+                self._sync_fast_forward_widgets(idle=True)
+                return
+
+            self.root.after(1, self._run_auto_play_step)
+        except tk.TclError:
+            self._auto_play_active = False
+            self._sync_fast_forward_widgets(idle=True)
+
+    def _run_batch_autoplay_from_gui(self) -> None:
+        path = self._game_root / "data" / "child_templates.json"
+        try:
+            templates = load_child_templates(path)
+        except (OSError, ValueError) as e:
+            messagebox.showerror("Batch auto-play", str(e))
+            return
+        if self._btn_fast_forward is not None:
+            self._btn_fast_forward.config(state=tk.DISABLED)
+        if self._lbl_auto_prog is not None:
+            self._lbl_auto_prog.config(text="Batch auto-play: running…")
+        self.root.update_idletasks()
+        try:
+            paths = run_batch_autoplay_save_all(
+                templates=templates,
+                events_catalog=self._events_catalog,
+                settings=self._settings,
+                save_dir=self._save_dir,
+            )
+        except OSError as e:
+            messagebox.showerror("Batch auto-play", str(e))
+            if self._btn_fast_forward is not None:
+                self._btn_fast_forward.config(state=tk.NORMAL)
+            if self._lbl_auto_prog is not None:
+                self._lbl_auto_prog.config(text="Fast-forward: idle")
+            return
+        if self._btn_fast_forward is not None:
+            self._btn_fast_forward.config(state=tk.NORMAL)
+        if self._lbl_auto_prog is not None:
+            self._lbl_auto_prog.config(text="Fast-forward: idle")
+        messagebox.showinfo(
+            "Batch auto-play",
+            f"Wrote {len(paths)} save(s) under:\n{self._save_dir}",
+        )
+        self.refresh_all()
+
     def _schedule_auto_uneventful(self) -> None:
+        if self._auto_play_active:
+            return
         if not self._settings.auto_simulate_uneventful_weeks:
             return
         if self._weekly_slots:
@@ -566,6 +809,9 @@ class GameMainWindow:
             pass
 
     def _on_next_week(self) -> None:
+        if self._auto_play_active:
+            messagebox.showinfo("Next week", "Stop fast-forward first.")
+            return
         self._narrative_auto_uneventful = False
         self._advance_week()
         self.refresh_all()
@@ -574,6 +820,9 @@ class GameMainWindow:
         return int(self._child.get("age_years", 99)) < 6
 
     def _on_auto_simulate_week(self) -> None:
+        if self._auto_play_active:
+            messagebox.showinfo("Auto week", "Stop fast-forward first.")
+            return
         if not self._is_early_childhood():
             messagebox.showinfo(
                 "Auto week",
@@ -600,6 +849,8 @@ class GameMainWindow:
         self.refresh_all()
 
     def _on_event_reaction(self, event_index: int, reaction: str, intensity: int) -> None:
+        if self._auto_play_active:
+            return
         self._apply_reaction(event_index, reaction, intensity)
 
     def _apply_reaction(
@@ -610,14 +861,16 @@ class GameMainWindow:
         *,
         prefix: str = "",
         refresh: bool = True,
+        silent: bool = False,
     ) -> None:
         if event_index < 0 or event_index >= len(self._weekly_slots):
             return
         if event_index in self._handled_events:
-            messagebox.showinfo(
-                "Weekly events",
-                "You already responded to this event this week.",
-            )
+            if not silent:
+                messagebox.showinfo(
+                    "Weekly events",
+                    "You already responded to this event this week.",
+                )
             return
         if reaction not in REACTION_KINDS:
             return

@@ -31,6 +31,12 @@ from game.template_data import (
     sample_weekly_events,
 )
 from game.trait_updates import REACTION_KINDS, apply_trait_deltas, trait_deltas
+from game.personality_analysis import build_personality_analysis
+from game.simulation import (
+    advance_game_week,
+    apply_auto_reactions_current_week,
+    build_autoplay_context_from_profile,
+)
 
 
 GAME_ROOT = Path(__file__).resolve().parents[1] / "game"
@@ -371,6 +377,134 @@ class TestSummaryPanelFormatting(unittest.TestCase):
 
         s = "a\n\n\n\nb"
         self.assertEqual(normalize_paragraphs(s), "a\n\nb")
+
+
+class TestAutoPlaySimulation(unittest.TestCase):
+    def test_apply_auto_reactions_guide_updates_traits(self) -> None:
+        settings = GameSettings(
+            auto_play_reaction_mode="guide",
+            auto_play_intensity_min=10,
+            auto_play_intensity_max=10,
+        )
+        rng = __import__("random").Random(0)
+        traits = {k: 50 for k in DEFAULT_TRAIT_KEYS}
+        slots = [
+            {
+                "id": "e1",
+                "text": "situation",
+                "trait_weights": {k: 0.12 for k in DEFAULT_TRAIT_KEYS},
+                "category": "Learning",
+            }
+        ]
+        handled: set[int] = set()
+        lines: list[str] = []
+        reacts: list[dict] = []
+        n = apply_auto_reactions_current_week(
+            traits=traits,
+            weekly_slots=slots,
+            handled_events=handled,
+            week_reaction_lines=lines,
+            current_week_reactions=reacts,
+            settings=settings,
+            rng=rng,
+        )
+        self.assertEqual(n, 1)
+        self.assertEqual(handled, {0})
+        self.assertTrue(any(traits.get(k, 50) != 50 for k in DEFAULT_TRAIT_KEYS))
+
+    def test_advance_game_week_appends_history(self) -> None:
+        import random
+
+        rng = random.Random(0)
+        child = {"name": "Kid", "age_years": 10, "calendar_week": 2}
+        traits = {k: 55 for k in DEFAULT_TRAIT_KEYS}
+        catalog = [
+            {
+                "id": "ev",
+                "stage_id": "middle_childhood",
+                "category": "Learning",
+                "age_min_years": 5.0,
+                "age_max_years": 12.0,
+                "template": "Study {child_name}",
+                "pools": {},
+            }
+        ]
+        weekly_slots = [
+            {
+                "id": "e1",
+                "text": "x",
+                "trait_weights": {k: 0.05 for k in DEFAULT_TRAIT_KEYS},
+                "category": "Learning",
+            }
+        ]
+        handled: set[int] = {0}
+        week_lines = ["Event 1: Guide"]
+        current_rx = [{"event_index": 0, "reaction": "Guide", "intensity": 5}]
+        event_descriptions = ["x"]
+        week_history: list[dict] = []
+
+        new_cw, tws = advance_game_week(
+            child=child,
+            traits=traits,
+            calendar_week=2,
+            weekly_slots=weekly_slots,
+            handled_events=handled,
+            week_reaction_lines=week_lines,
+            current_week_reactions=current_rx,
+            event_descriptions=event_descriptions,
+            week_history=week_history,
+            events_catalog=catalog,
+            rng=rng,
+        )
+        self.assertEqual(new_cw, 3)
+        self.assertEqual(len(week_history), 1)
+        self.assertEqual(week_history[0]["calendar_week"], 2)
+        self.assertFalse(week_lines)
+        self.assertEqual(tws, dict(traits))
+
+    def test_autoplay_context_runs_steps_without_input(self) -> None:
+        if not EVENTS_JSON.is_file():
+            raise unittest.SkipTest("events_templates.json missing")
+        import random
+
+        catalog = load_events_templates(EVENTS_JSON)
+        profile = {
+            "name": "AutoKid",
+            "age_years": 10,
+            "calendar_week": 1,
+            "gender": "Girl",
+            "branch": "Test branch",
+            "temperament": "Calm",
+            "baseline_traits": {k: 50 for k in DEFAULT_TRAIT_KEYS},
+        }
+        rng = random.Random(42)
+        ctx = build_autoplay_context_from_profile(profile, rng=rng, events_catalog=catalog)
+        settings = GameSettings()
+        for _ in range(6):
+            ctx.step(catalog, settings, rng)
+        self.assertEqual(len(ctx.week_history), 6)
+
+    def test_personality_analysis_includes_traits_and_reactions(self) -> None:
+        traits = {k: 40 + i for i, k in enumerate(DEFAULT_TRAIT_KEYS)}
+        hist = [
+            {
+                "calendar_week": 1,
+                "reactions": [{"reaction": "Guide"}, {"reaction": "Praise"}],
+                "traits_end": traits,
+                "narrative": "",
+                "event_texts": [],
+            }
+        ]
+        text = build_personality_analysis(
+            child={"name": "Sam", "branch": "Main"},
+            traits=traits,
+            week_history=hist,
+            simulation_length_years=18,
+            simulated_years_approx=17.9,
+        )
+        self.assertIn("Sam", text)
+        self.assertIn("Guide", text)
+        self.assertIn("Praise", text)
 
 
 if __name__ == "__main__":
