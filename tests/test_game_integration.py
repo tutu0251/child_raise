@@ -25,6 +25,7 @@ from game.template_data import (
     DEFAULT_TRAIT_KEYS,
     EVENT_CATEGORIES,
     apply_new_game_choices,
+    effective_new_game_age_and_week,
     load_child_templates,
     load_events_templates,
     profile_to_game_child,
@@ -80,10 +81,16 @@ class TestNewGameProfileInit(unittest.TestCase):
         self.assertIn("social_tendency", child)
         self.assertIn("health", child)
         self.assertIn("energy", child)
-        self.assertEqual(int(child["intelligence"]), DEFAULT_INTELLIGENCE)
-        self.assertEqual(int(child["social_tendency"]), DEFAULT_SOCIAL_TENDENCY)
-        self.assertEqual(int(child["health"]), DEFAULT_HEALTH)
-        self.assertEqual(int(child["energy"]), DEFAULT_ENERGY)
+        self.assertEqual(
+            int(child["intelligence"]),
+            int(base.get("intelligence", DEFAULT_INTELLIGENCE)),
+        )
+        self.assertEqual(
+            int(child["social_tendency"]),
+            int(base.get("social_tendency", DEFAULT_SOCIAL_TENDENCY)),
+        )
+        self.assertEqual(int(child["health"]), int(base.get("health", DEFAULT_HEALTH)))
+        self.assertEqual(int(child["energy"]), int(base.get("energy", DEFAULT_ENERGY)))
         self.assertTrue(traits)
 
     def test_profile_optional_stats_from_template(self) -> None:
@@ -108,7 +115,7 @@ class TestNewGameProfileInit(unittest.TestCase):
 
     def test_start_age_zero(self) -> None:
         p = apply_new_game_choices(
-            {"id": "x", "name": "N", "age_years": 8, "gender": "x", "temperament": "y", "branch": "b"},
+            {"id": "x", "name": "N", "age_years": 0, "gender": "x", "temperament": "y", "branch": "b"},
             start_age_years=0,
             gender="",
             temperament="",
@@ -117,11 +124,59 @@ class TestNewGameProfileInit(unittest.TestCase):
         self.assertEqual(p["age_years"], 0)
         self.assertEqual(p["calendar_week"], 5)
 
+    def test_template_age_overrides_birth_choice(self) -> None:
+        p = apply_new_game_choices(
+            {
+                "id": "older_tpl",
+                "name": "Kid",
+                "age_years": 4,
+                "calendar_week": 12,
+                "gender": "Boy",
+                "temperament": "Calm",
+                "branch": "B",
+                "baseline_traits": {k: 50 for k in DEFAULT_TRAIT_KEYS},
+            },
+            start_age_years=0,
+            gender="Girl",
+            temperament="Curious",
+            calendar_week=1,
+        )
+        self.assertEqual(p["age_years"], 4)
+        self.assertEqual(p["calendar_week"], 12)
+        self.assertEqual(p["gender"], "Girl")
+
+    def test_template_age_two_start_three_uses_three(self) -> None:
+        p = apply_new_game_choices(
+            {
+                "id": "toddler",
+                "name": "Kid",
+                "age_years": 2,
+                "calendar_week": 8,
+                "gender": "Boy",
+                "temperament": "Active",
+                "branch": "B",
+                "baseline_traits": {k: 50 for k in DEFAULT_TRAIT_KEYS},
+            },
+            start_age_years=3,
+            gender="Boy",
+            temperament="Active",
+            calendar_week=1,
+        )
+        self.assertEqual(p["age_years"], 3)
+        self.assertEqual(p["calendar_week"], 1)
+
+    def test_effective_new_game_age_and_week_helper(self) -> None:
+        tpl = {"age_years": 6, "calendar_week": 40}
+        a, w, o = effective_new_game_age_and_week(tpl, start_age_years=0, calendar_week_fallback=99)
+        self.assertTrue(o)
+        self.assertEqual(a, 6)
+        self.assertEqual(w, 40)
+
     def test_apply_new_game_choices_stat_overrides(self) -> None:
         base = {
             "id": "t",
             "name": "Kid",
-            "age_years": 8,
+            "age_years": 0,
             "calendar_week": 1,
             "gender": "Girl",
             "temperament": "Calm",
@@ -208,7 +263,8 @@ class TestGameMainWindowTopBar(unittest.TestCase):
             rng=None,
         )
         try:
-            self.assertEqual(win._top_labels["week_lbl"].cget("text"), "Age 3 · Week 1")
+            # Template age 8 is greater than skip-infancy (3), so template age wins (week clamped to 52).
+            self.assertEqual(win._top_labels["week_lbl"].cget("text"), "Age 8 · Week 52")
             self.assertEqual(win._top_labels["gender_lbl"].cget("text"), "Non-binary")
             self.assertEqual(win._top_labels["intel_lbl"].cget("text"), str(DEFAULT_INTELLIGENCE))
         finally:
@@ -456,10 +512,30 @@ class TestNarrativePlaceholder(unittest.TestCase):
             event_summaries=[long_ev],
             last_reaction_summary="Event 1: Guide at intensity 5.",
         )
-        self.assertIn("Event 1 snapshot:", t)
+        self.assertIn("Event 1:", t)
         self.assertIn("x" * 119 + "…", t)
         self.assertIn("Latest log line:", t)
         self.assertIn("Guide at intensity 5.", t)
+
+    def test_feedback_reaction_digest(self) -> None:
+        traits = {k: 50 for k in DEFAULT_TRAIT_KEYS}
+        traits["Openness"] = 54
+        t = build_weekly_narrative_feedback(
+            calendar_week=2,
+            child_name="Rae",
+            event_count=2,
+            reaction_lines_count=2,
+            traits_now=traits,
+            traits_week_start={k: 50 for k in DEFAULT_TRAIT_KEYS},
+            simulation_target_years=16,
+            simulated_years_approx=2.0,
+            week_reactions=[
+                {"reaction": "Guide", "intensity": 5},
+                {"reaction": "Guide", "intensity": 6},
+            ],
+        )
+        self.assertIn("Guide×2", t)
+        self.assertIn("Openness", t)
 
 
 class TestBranchForestRender(unittest.TestCase):
@@ -762,7 +838,14 @@ class TestAutoPlaySimulation(unittest.TestCase):
             }
         ]
         text = build_personality_analysis(
-            child={"name": "Sam", "branch": "Main"},
+            child={
+                "name": "Sam",
+                "branch": "Main",
+                "intelligence": 61,
+                "social_tendency": 55,
+                "health": 92,
+                "energy": 70,
+            },
             traits=traits,
             week_history=hist,
             simulation_length_years=18,
@@ -771,6 +854,8 @@ class TestAutoPlaySimulation(unittest.TestCase):
         self.assertIn("Sam", text)
         self.assertIn("Guide", text)
         self.assertIn("Praise", text)
+        self.assertIn("Intelligence", text)
+        self.assertIn("61", text)
 
     def test_trait_delta_between_sums_moves(self) -> None:
         a = {k: 50 for k in DEFAULT_TRAIT_KEYS}

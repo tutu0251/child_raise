@@ -40,7 +40,7 @@ def show_options_dialog(parent: tk.Misc, settings: GameSettings) -> bool:
 
     ttk.Checkbutton(
         frm,
-        text="Jump to age 3 without simulating 0–2",
+        text="Jump to age 3 without simulating 0–2 (only if the child is still below age 3)",
         variable=skip_var,
     ).grid(row=1, column=0, columnspan=2, sticky=tk.W, pady=2)
 

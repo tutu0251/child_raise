@@ -44,7 +44,7 @@ from game.template_data import (
 )
 from game.trait_updates import REACTION_KINDS, apply_trait_deltas, format_delta_line, trait_deltas
 from game.ui.options_dialog import show_options_dialog
-from game.ui.branch_tree import BranchTreePanel
+from game.ui.branch_tree import BranchTreePanel, fill_branch_tree_text
 from game.ui.events_panel import EventsPanel
 from game.ui.stats_panel import StatsPanel
 from game.ui.summary_panel import SummaryPanel
@@ -381,6 +381,7 @@ class GameMainWindow:
         ay = int(self._child.get("age_years", 0))
         if ay >= 3:
             return
+        # Option jump targets age 3 only when the child is still in 0–2; older template ages are untouched.
         self._child["age_years"] = 3
         self._calendar_week = normalize_age_calendar_week(self._child, self._calendar_week)
         self._child["calendar_week"] = self._calendar_week
@@ -561,13 +562,14 @@ class GameMainWindow:
                 auto_uneventful_note=auto_note,
                 event_summaries=ev_texts,
                 last_reaction_summary=last_line,
+                week_reactions=list(self._current_week_reactions),
             )
             body = (
                 "\n".join(self._week_reaction_lines)
                 if self._week_reaction_lines
                 else "No reactions logged yet this week."
             )
-        parts = [head, "", "--- Placeholder narrative feedback ---", feedback, "", "--- This week's log ---", body]
+        parts = [head, "", "--- Weekly narrative summary ---", feedback, "", "--- This week's log ---", body]
         if self._auto_play_active and self._settings.auto_play_batch_summaries and self._auto_play_batch_log:
             parts.extend(["", "--- Auto-play batch summaries ---", *self._auto_play_batch_log[-12:]])
         if self._auto_play_active and self._settings.auto_play_collect_highlights and self._auto_play_highlights:
@@ -1135,9 +1137,7 @@ class GameMainWindow:
         xs.grid(row=1, column=0, sticky="ew")
         top.rowconfigure(0, weight=1)
         top.columnconfigure(0, weight=1)
-        body = "\n".join(self._branch_lines())
-        txt.insert("1.0", body)
-        txt.config(state=tk.DISABLED)
+        fill_branch_tree_text(txt, self._branch_lines(), clear_tags=True)
 
     def refresh_all(self) -> None:
         self._top_labels["name_lbl"].config(text=str(self._child.get("name", "")))

@@ -40,6 +40,7 @@ class BranchNodeMeta:
     branch_label: str
     parent_branch_id: str | None
     parent_save_file: str | None
+    age_years: int
     calendar_week: int
     child_name: str
     game_branch: str
@@ -61,6 +62,10 @@ def scan_branch_nodes(save_dir: Path) -> list[BranchNodeMeta]:
             traits = {}
         hist = raw.get("week_history") or []
         child = raw.get("child") or {}
+        try:
+            age_y = int(child.get("age_years", 0))
+        except (TypeError, ValueError):
+            age_y = 0
         out.append(
             BranchNodeMeta(
                 file_path=path,
@@ -68,6 +73,7 @@ def scan_branch_nodes(save_dir: Path) -> list[BranchNodeMeta]:
                 branch_label=str(raw.get("branch_label", "Unnamed")),
                 parent_branch_id=str(raw["parent_branch_id"]) if raw.get("parent_branch_id") else None,
                 parent_save_file=str(raw["parent_save_file"]) if raw.get("parent_save_file") else None,
+                age_years=age_y,
                 calendar_week=int(raw.get("calendar_week", 1)),
                 child_name=str(child.get("name", "?")),
                 game_branch=str(child.get("branch", "")),
@@ -110,7 +116,8 @@ def render_saved_branch_forest(
         return ch
 
     lines: list[str] = [
-        "Branching timeline (saved files under game/save/). Legend: Ope=Openness, Con=Conscientiousness, …",
+        "Branching timeline (saved files under game/save/).",
+        "Legend: Ope=Openness, Con=Conscientiousness, …  Node line: Age N · Week W.",
         "",
     ]
 
@@ -118,8 +125,17 @@ def render_saved_branch_forest(
         arm = "└── " if is_last else "├── "
         tw = traits_compact(node.traits) if node.traits else "—"
         cur = "  ◀ CURRENT(save)" if current_branch_id and node.branch_id == current_branch_id else ""
+        wk_tag = ""
+        if (
+            current_week is not None
+            and current_branch_id
+            and node.branch_id == current_branch_id
+            and abs(int(node.calendar_week) - int(current_week)) >= 8
+        ):
+            wk_tag = "  [calendar week ahead of last save snapshot]"
         lines.append(
-            f"{prefix}{arm}[W{node.calendar_week}] {node.branch_label} — {node.child_name}{cur}"
+            f"{prefix}{arm}Age {node.age_years} · W{node.calendar_week} — "
+            f"{node.branch_label} — {node.child_name}{cur}{wk_tag}"
         )
         lines.append(f"{prefix}{'    ' if is_last else '│   '}    traits@save: {tw}")
         lines.append(f"{prefix}{'    ' if is_last else '│   '}    `{node.file_path.name}`")
@@ -181,6 +197,27 @@ def format_branch_comparison(a: dict[str, Any], b: dict[str, Any]) -> str:
     lines.append(f"Branch:   {ca.get('branch')}  vs  {cb.get('branch')}")
     lines.append(f"Week:     {a.get('calendar_week')}  vs  {b.get('calendar_week')}")
     lines.append(f"History:  {len(ha)} completed week(s)  vs  {len(hb)}")
+    lines.append("")
+    lines.append("--- Child stats (0–100) ---")
+    for label, ka, kb in (
+        ("Intelligence", "intelligence", "intelligence"),
+        ("Social tendency", "social_tendency", "social_tendency"),
+        ("Health", "health", "health"),
+        ("Energy", "energy", "energy"),
+    ):
+        va, vb = ca.get(ka), cb.get(kb)
+        try:
+            ia = int(va) if va is not None else None
+        except (TypeError, ValueError):
+            ia = None
+        try:
+            ib = int(vb) if vb is not None else None
+        except (TypeError, ValueError):
+            ib = None
+        if isinstance(ia, int) and isinstance(ib, int):
+            lines.append(f"  {label:18}  {ia:3}  vs  {ib:3}  ({ib - ia:+d})")
+        else:
+            lines.append(f"  {label:18}  {va!s}  vs  {vb!s}")
     lines.append("")
     lines.append("--- Personality outcomes (traits) ---")
     for k in DEFAULT_TRAIT_KEYS:

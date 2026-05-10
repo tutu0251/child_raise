@@ -63,6 +63,56 @@ def merge_child_stat_defaults(child: dict[str, str | int]) -> dict[str, str | in
     return out
 
 
+def _clamp_calendar_week(value: object) -> int:
+    try:
+        return max(1, min(52, int(value)))
+    except (TypeError, ValueError):
+        return 1
+
+
+def effective_new_game_age_and_week(
+    template: dict,
+    *,
+    start_age_years: int,
+    calendar_week_fallback: int = 1,
+) -> tuple[int, int, bool]:
+    """
+    Resolve starting ``age_years`` and ``calendar_week``.
+
+    If ``template['age_years']`` is strictly greater than the player's start-age option
+    (0 = birth, 3 = skip infancy), the template age wins and the template's calendar week
+    is used when present.
+
+    Returns ``(age_years, calendar_week, template_overrode_age)``.
+    """
+    tpl = dict(template)
+    try:
+        tpl_age = int(tpl.get("age_years", 0))
+    except (TypeError, ValueError):
+        tpl_age = 0
+    try:
+        chosen = int(start_age_years)
+    except (TypeError, ValueError):
+        chosen = 0
+    if chosen not in (0, 3):
+        chosen = 0 if chosen < 2 else 3
+
+    template_overrode = tpl_age > chosen
+    effective_age = tpl_age if template_overrode else chosen
+
+    if template_overrode:
+        cw = _clamp_calendar_week(tpl.get("calendar_week", 1))
+    elif chosen == 3:
+        cw = 1
+    else:
+        if "calendar_week" in tpl:
+            cw = _clamp_calendar_week(tpl.get("calendar_week"))
+        else:
+            cw = _clamp_calendar_week(calendar_week_fallback)
+
+    return effective_age, cw, template_overrode
+
+
 def apply_new_game_choices(
     template: dict,
     *,
@@ -77,9 +127,11 @@ def apply_new_game_choices(
 ) -> dict:
     """Merge new-game dialog choices into a profile dict (mutates a shallow copy only)."""
     profile = dict(template)
-    age = int(start_age_years)
-    profile["age_years"] = 3 if age == 3 else 0
-    profile["calendar_week"] = max(1, int(calendar_week))
+    eff_age, eff_cw, _ = effective_new_game_age_and_week(
+        template, start_age_years=start_age_years, calendar_week_fallback=calendar_week
+    )
+    profile["age_years"] = eff_age
+    profile["calendar_week"] = eff_cw
 
     g = str(gender).strip()
     if g:

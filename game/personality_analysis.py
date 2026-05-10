@@ -36,8 +36,20 @@ def build_personality_analysis(
         f"Story branch label: {branch or '(none)'}",
         f"Run target: {simulation_length_years} years · simulated ≈ {simulated_years_approx:.2f} years.",
         "",
-        "--- Trait profile (0–100) ---",
+        "--- Child attributes (0–100) ---",
     ]
+    for label, key in (
+        ("Intelligence", "intelligence"),
+        ("Social tendency", "social_tendency"),
+        ("Health", "health"),
+        ("Energy", "energy"),
+    ):
+        try:
+            v = int(child.get(key, 0))
+        except (TypeError, ValueError):
+            v = 0
+        lines.append(f"  {label:18} {v:3}")
+    lines.extend(["", "--- Trait profile (0–100) ---"])
     ordered = [(k, int(traits.get(k, 50))) for k in DEFAULT_TRAIT_KEYS]
     ordered.sort(key=lambda x: -x[1])
     for k, v in ordered:

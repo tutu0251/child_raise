@@ -6,6 +6,7 @@ import copy
 import tkinter as tk
 from tkinter import messagebox, ttk
 
+from game.template_data import effective_new_game_age_and_week
 from game.ui import theme
 
 TEMPERAMENT_PRESETS: tuple[str, ...] = ("Calm", "Curious", "Shy", "Active")
@@ -37,7 +38,7 @@ def show_new_game_dialog(parent: tk.Misc, profiles: list[dict]) -> dict | None:
     # Do not call transient(parent) when parent is withdrawn: on Windows the dialog
     # often never appears or stays unusably tied to a hidden root.
     top.grab_set()
-    top.minsize(440, 560)
+    top.minsize(460, 620)
 
     result: dict | None = None
 
@@ -58,10 +59,51 @@ def show_new_game_dialog(parent: tk.Misc, profiles: list[dict]) -> dict | None:
 
     ttk.Label(frm, text="Start age:", font=theme.FONT_UI_HEADER).grid(row=2, column=0, sticky=tk.NW, pady=(12, 4))
     age_fr = ttk.Frame(frm)
-    age_fr.grid(row=2, column=1, sticky=tk.W, pady=(12, 4))
+    age_fr.grid(row=2, column=1, sticky=tk.EW, pady=(12, 4))
     start_age_var = tk.IntVar(value=0)
     ttk.Radiobutton(age_fr, text="Birth (age 0)", variable=start_age_var, value=0).pack(anchor=tk.W)
     ttk.Radiobutton(age_fr, text="Skip infancy (age 3)", variable=start_age_var, value=3).pack(anchor=tk.W)
+    age_effect_hint = ttk.Label(
+        age_fr,
+        text="",
+        wraplength=400,
+        foreground=theme.COLOR_NEUTRAL,
+        justify=tk.LEFT,
+    )
+    age_effect_hint.pack(anchor=tk.W, pady=(8, 0))
+
+    def refresh_age_effect_hint(*_a: object) -> None:
+        try:
+            ix = labels.index(profile_var.get())
+        except ValueError:
+            ix = 0
+        tpl = profiles[ix]
+        chosen = int(start_age_var.get())
+        eff_age, eff_cw, over = effective_new_game_age_and_week(
+            tpl, start_age_years=chosen, calendar_week_fallback=1
+        )
+        try:
+            ta = int(tpl.get("age_years", 0))
+        except (TypeError, ValueError):
+            ta = 0
+        if over:
+            age_effect_hint.config(
+                text=(
+                    f"Template age is {ta} (above your start-age choice {chosen}); "
+                    f"the run begins at age {eff_age}, calendar week {eff_cw}. "
+                    "Other template fields (traits, branch, optional stats) stay on the profile."
+                )
+            )
+        else:
+            age_effect_hint.config(
+                text=(
+                    f"Resolved start: age {eff_age}, calendar week {eff_cw}. "
+                    "(Choosing skip-infancy uses week 1 unless the template age overrides.)"
+                )
+            )
+
+    profile_cb.bind("<<ComboboxSelected>>", refresh_age_effect_hint)
+    start_age_var.trace_add("write", lambda *_: refresh_age_effect_hint())
 
     ttk.Label(frm, text="Gender:", font=theme.FONT_UI_HEADER).grid(row=3, column=0, sticky=tk.NW, pady=4)
     gender_fr = ttk.Frame(frm)
@@ -102,10 +144,11 @@ def show_new_game_dialog(parent: tk.Misc, profiles: list[dict]) -> dict | None:
     hint = ttk.Label(
         frm,
         text=(
-            "Pick a template for baseline personality traits and branch flavor. "
-            "Starting age sets years to 0 or 3 (calendar week resets to 1). "
-            "Gender and temperament override the template for this playthrough. "
-            "Leave stat boxes empty to use template defaults."
+            "Templates carry baseline traits, branch flavor, optional stats, and an age_years field. "
+            "Birth vs skip-infancy normally sets 0 or 3; if template age_years is greater than that choice, "
+            "the template age (and its calendar week when present) wins. "
+            "Gender and temperament are chosen here for this run. "
+            "Leave stat boxes empty to keep template defaults."
         ),
         wraplength=400,
         foreground=theme.COLOR_NEUTRAL,
@@ -172,5 +215,6 @@ def show_new_game_dialog(parent: tk.Misc, profiles: list[dict]) -> dict | None:
     top.lift()
     top.focus_force()
 
+    refresh_age_effect_hint()
     parent.wait_window(top)
     return result

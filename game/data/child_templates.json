@@ -8,6 +8,10 @@
       "gender": "Boy",
       "age_years": 0,
       "calendar_week": 20,
+      "intelligence": 48,
+      "social_tendency": 46,
+      "health": 100,
+      "energy": 94,
       "temperament": "Easy-going, sensory-sensitive",
       "branch": "Infant care — rhythms & regulation",
       "baseline_traits": {

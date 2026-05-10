@@ -10,7 +10,12 @@ from pathlib import Path
 
 from game.persistence import SCHEMA_VERSION, dump_save, utc_now_iso
 from game.settings import GameSettings
-from game.template_data import DEFAULT_TRAIT_KEYS, merge_child_stat_defaults, profile_to_game_child, sample_weekly_events
+from game.template_data import (
+    DEFAULT_TRAIT_KEYS,
+    merge_child_stat_defaults,
+    profile_to_game_child,
+    sample_weekly_events,
+)
 from game.trait_updates import REACTION_KINDS, apply_trait_deltas, format_delta_line, trait_deltas
 
 
@@ -179,6 +184,84 @@ def pick_auto_reaction_and_intensity(settings: GameSettings, rng: random.Random)
     return reaction, intensity
 
 
+def _clamp_stat(v: object, default: int) -> int:
+    try:
+        return max(0, min(100, int(v)))
+    except (TypeError, ValueError):
+        return default
+
+
+def apply_passive_week_aging(
+    child: dict[str, str | int],
+    traits: dict[str, int],
+    rng: random.Random,
+    *,
+    calendar_week: int,
+) -> list[str]:
+    """
+    Small age-linked adjustments at week rollover (before the week is archived).
+
+    Touches intelligence, social_tendency, health, energy, and occasionally one
+    personality trait by a single point — subtle compared to reaction-driven shifts.
+    """
+    from game.template_data import (
+        DEFAULT_ENERGY,
+        DEFAULT_HEALTH,
+        DEFAULT_INTELLIGENCE,
+        DEFAULT_SOCIAL_TENDENCY,
+    )
+
+    lines: list[str] = []
+    child_m = merge_child_stat_defaults(dict(child))
+    for k, v in child_m.items():
+        if k in ("intelligence", "social_tendency", "health", "energy"):
+            child[k] = v
+
+    ay = int(child.get("age_years", 0))
+    cw = max(1, int(calendar_week))
+    sy = float(ay) + (cw - 1) / 52.0
+
+    intel = _clamp_stat(child.get("intelligence"), DEFAULT_INTELLIGENCE)
+    soc = _clamp_stat(child.get("social_tendency"), DEFAULT_SOCIAL_TENDENCY)
+    health = _clamp_stat(child.get("health"), DEFAULT_HEALTH)
+    energy = _clamp_stat(child.get("energy"), DEFAULT_ENERGY)
+
+    # Energy: young children recover a bit more often; teens oscillate more.
+    if ay < 6:
+        de = rng.randint(-1, 3)
+    elif ay < 12:
+        de = rng.randint(-2, 2)
+    else:
+        de = rng.randint(-3, 2)
+    ne = max(0, min(100, energy + de))
+    if ne != energy:
+        child["energy"] = ne
+        lines.append(f"[Passive] Energy {energy} → {ne} (weekly rhythm).")
+
+    # Health: slow drift toward band by age (minor).
+    target_h = 98 if ay < 10 else 95
+    if health < target_h and rng.random() < 0.35:
+        nh = min(target_h, health + 1)
+        child["health"] = nh
+        lines.append(f"[Passive] Health {health} → {nh} (steady care / growth).")
+    elif health > 99 and rng.random() < 0.12:
+        nh = health - 1
+        child["health"] = nh
+        lines.append(f"[Passive] Health {health} → {nh} (minor fluctuation).")
+
+    # Cognitive / social: tiny learning-environment nudges during school-age years.
+    if 5.0 <= sy <= 16.0 and rng.random() < 0.08:
+        ni = min(100, intel + 1)
+        child["intelligence"] = ni
+        lines.append(f"[Passive] Intelligence {intel} → {ni} (age-linked learning exposure).")
+    if 3.0 <= sy <= 14.0 and rng.random() < 0.06:
+        ns = min(100, soc + 1)
+        child["social_tendency"] = ns
+        lines.append(f"[Passive] Social tendency {soc} → {ns} (peer context).")
+
+    return lines
+
+
 def finalize_week_snapshot(
     calendar_week: int,
     event_descriptions: list[str],
@@ -258,6 +341,7 @@ def advance_game_week(
     events_catalog: list[dict],
     rng: random.Random,
 ) -> tuple[int, dict[str, int]]:
+    week_reaction_lines.extend(apply_passive_week_aging(child, traits, rng, calendar_week=calendar_week))
     finalize_week_snapshot(
         calendar_week,
         event_descriptions,
