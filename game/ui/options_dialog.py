@@ -18,7 +18,7 @@ def show_options_dialog(parent: tk.Misc, settings: GameSettings) -> bool:
     top.title("Options")
     top.transient(parent)
     top.grab_set()
-    top.minsize(420, 280)
+    top.minsize(420, 310)
 
     result = {"ok": False}
 
@@ -34,6 +34,7 @@ def show_options_dialog(parent: tk.Misc, settings: GameSettings) -> bool:
     skip_var = tk.BooleanVar(value=settings.skip_years_zero_to_two)
     auto_var = tk.BooleanVar(value=settings.auto_simulate_uneventful_weeks)
     batch_var = tk.BooleanVar(value=settings.batch_early_years_stats)
+    branch_panel_var = tk.BooleanVar(value=settings.show_branch_timeline_panel)
 
     ttk.Checkbutton(
         frm,
@@ -53,12 +54,18 @@ def show_options_dialog(parent: tk.Misc, settings: GameSettings) -> bool:
         variable=batch_var,
     ).grid(row=3, column=0, columnspan=2, sticky=tk.W, pady=2)
 
+    ttk.Checkbutton(
+        frm,
+        text="Show branch timeline panel (sidebar — full tree stays in View branch tree)",
+        variable=branch_panel_var,
+    ).grid(row=4, column=0, columnspan=2, sticky=tk.W, pady=2)
+
     ttk.Label(frm, text="Simulation length:", font=theme.FONT_UI_HEADER).grid(
-        row=4, column=0, sticky=tk.W, pady=(12, 4)
+        row=5, column=0, sticky=tk.W, pady=(12, 4)
     )
     len_var = tk.IntVar(value=settings.simulation_length_years)
     rf = ttk.Frame(frm)
-    rf.grid(row=5, column=0, columnspan=2, sticky=tk.W)
+    rf.grid(row=6, column=0, columnspan=2, sticky=tk.W)
     for years in (16, 18):
         ttk.Radiobutton(rf, text=f"{years} years", variable=len_var, value=years).pack(
             side=tk.LEFT, padx=(0, 16)
@@ -73,15 +80,16 @@ def show_options_dialog(parent: tk.Misc, settings: GameSettings) -> bool:
         wraplength=400,
         foreground=theme.COLOR_NEUTRAL,
     )
-    hint.grid(row=6, column=0, columnspan=2, sticky=tk.W, pady=(12, 8))
+    hint.grid(row=7, column=0, columnspan=2, sticky=tk.W, pady=(12, 8))
 
     btn_row = ttk.Frame(frm)
-    btn_row.grid(row=7, column=0, columnspan=2, sticky=tk.E)
+    btn_row.grid(row=8, column=0, columnspan=2, sticky=tk.E)
 
     def on_ok() -> None:
         settings.skip_years_zero_to_two = skip_var.get()
         settings.auto_simulate_uneventful_weeks = auto_var.get()
         settings.batch_early_years_stats = batch_var.get()
+        settings.show_branch_timeline_panel = branch_panel_var.get()
         ly = len_var.get()
         settings.simulation_length_years = 18 if ly != 16 else 16
         settings.__post_init__()

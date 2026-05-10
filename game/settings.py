@@ -12,6 +12,7 @@ class GameSettings:
     skip_years_zero_to_two: bool = False
     auto_simulate_uneventful_weeks: bool = False
     batch_early_years_stats: bool = False
+    show_branch_timeline_panel: bool = True
     simulation_length_years: int = 18  # 16 or 18
 
     def __post_init__(self) -> None:

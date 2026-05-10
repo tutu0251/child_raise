@@ -1,8 +1,7 @@
-"""Personality stats: colored meters (responsive width), scales, trends vs week baseline."""
+"""Personality stats: colored meters (responsive width), trends vs week baseline."""
 
 from __future__ import annotations
 
-from collections.abc import Callable
 import tkinter as tk
 from tkinter import ttk
 
@@ -42,30 +41,72 @@ def paint_trait_meter(canvas: tk.Canvas, value: int, width: int | None = None) -
 
 
 class StatsPanel:
+    """Trait meters are read-only; values change through gameplay (e.g. reactions)."""
+
+    # Ignore layout churn between Tk passes (Windows can alternate ±few px if we write widths back).
+    _METER_BW_HYSTERESIS_PX = 8
+    _HINT_WRAP_HYSTERESIS_PX = 12
+
     def __init__(
         self,
         frame: ttk.LabelFrame,
-        rows: dict[str, tuple[tk.DoubleVar, ttk.Scale, tk.Label, tk.Canvas]],
-        value_labels: dict[str, ttk.Label],
+        rows: dict[str, tuple[tk.Label, tk.Canvas, ttk.Label]],
+        inner: ttk.Frame,
         hint_label: ttk.Label | None = None,
     ) -> None:
         self.frame = frame
         self._rows = rows
-        self._value_labels = value_labels
+        self._inner = inner
         self._hint_label = hint_label
+        self._last_meter_bw: int | None = None
+        self._last_hint_wrap: int | None = None
+        self._meter_sync_idle_pending = False
+        self._values: dict[str, int] = {k: 0 for k in rows}
 
     def set_hint_wraplength(self, px: int) -> None:
-        if self._hint_label is not None and px > 120:
-            self._hint_label.config(wraplength=px)
+        if self._hint_label is None or px <= 120:
+            return
+        px = max(121, int(px))
+        px = (px // 8) * 8
+        if (
+            self._last_hint_wrap is not None
+            and abs(px - self._last_hint_wrap) < self._HINT_WRAP_HYSTERESIS_PX
+        ):
+            return
+        self._last_hint_wrap = px
+        self._hint_label.config(wraplength=px)
+
+    def _on_inner_configure(self, evt: tk.Event) -> None:
+        if evt.widget is not self._inner:
+            return
+        self._queue_meter_width_sync()
+
+    def _queue_meter_width_sync(self) -> None:
+        if self._meter_sync_idle_pending:
+            return
+        self._meter_sync_idle_pending = True
+        self.frame.after_idle(self._flush_meter_width_sync)
+
+    def _flush_meter_width_sync(self) -> None:
+        self._meter_sync_idle_pending = False
+        if not self._rows:
+            return
+        _, probe, _ = next(iter(self._rows.values()))
+        try:
+            nw = int(probe.winfo_width())
+        except tk.TclError:
+            return
+        if nw < 40:
+            return
+        bw = max(_METER_MIN, min(_METER_MAX, nw))
+        if self._last_meter_bw is not None and abs(bw - self._last_meter_bw) < self._METER_BW_HYSTERESIS_PX:
+            return
+        self._last_meter_bw = bw
+        for name, (_, meter, _) in self._rows.items():
+            paint_trait_meter(meter, self._values.get(name, 0), bw)
 
     @classmethod
-    def build(
-        cls,
-        parent: tk.Misc,
-        trait_names: list[str],
-        *,
-        on_change: Callable[[str, int], None] | None = None,
-    ) -> StatsPanel:
+    def build(cls, parent: tk.Misc, trait_names: list[str]) -> StatsPanel:
         lf = ttk.LabelFrame(parent, text="Personality stats", padding=8)
         lf.pack(fill=tk.X, pady=(0, 8))
 
@@ -79,12 +120,14 @@ class StatsPanel:
         )
         hint.pack(anchor=tk.W, pady=(0, 6))
 
+        trait_col_chars = max((len(f"{n}:") for n in trait_names), default=18)
+
         inner = ttk.Frame(lf)
         inner.pack(fill=tk.X)
-        ttk.Label(inner, text="Trait", width=18, font=theme.FONT_UI_HEADER).grid(
+        ttk.Label(inner, text="Trait", width=trait_col_chars, font=theme.FONT_UI_HEADER).grid(
             row=0, column=0, sticky=tk.W, pady=(0, 4)
         )
-        ttk.Label(inner, text="Meter & scale", font=theme.FONT_UI_HEADER).grid(
+        ttk.Label(inner, text="Meter", font=theme.FONT_UI_HEADER).grid(
             row=0, column=1, sticky=tk.W, pady=(0, 4)
         )
         ttk.Label(inner, text="Trend", width=5, anchor=tk.CENTER, font=theme.FONT_UI_HEADER).grid(
@@ -94,11 +137,9 @@ class StatsPanel:
             row=0, column=3, sticky=tk.E, pady=(0, 4)
         )
 
-        rows: dict[str, tuple[tk.DoubleVar, ttk.Scale, tk.Label, tk.Canvas]] = {}
-        value_labels: dict[str, ttk.Label] = {}
-
+        rows: dict[str, tuple[tk.Label, tk.Canvas, ttk.Label]] = {}
         for r, name in enumerate(trait_names, start=1):
-            ttk.Label(inner, text=f"{name}:", width=18, anchor=tk.W).grid(
+            ttk.Label(inner, text=f"{name}:", width=trait_col_chars, anchor=tk.W).grid(
                 row=r, column=0, sticky=tk.W, pady=3
             )
 
@@ -112,73 +153,27 @@ class StatsPanel:
                 highlightthickness=0,
                 bd=0,
             )
-            meter.pack(fill=tk.X, anchor=tk.W)
-
-            var = tk.DoubleVar(value=0.0)
-            scale = ttk.Scale(
-                stack,
-                from_=0,
-                to=100,
-                orient=tk.HORIZONTAL,
-                length=_METER_DEFAULT,
-                variable=var,
-            )
-            scale.pack(fill=tk.X, anchor=tk.W, pady=(2, 0))
+            meter.pack(fill=tk.X, expand=False, anchor=tk.W)
 
             trend = tk.Label(inner, text="—", width=5, anchor=tk.CENTER, fg=theme.COLOR_NEUTRAL)
             trend.grid(row=r, column=2, pady=3)
 
             val = ttk.Label(inner, text="0 / 100", width=11, anchor=tk.E)
             val.grid(row=r, column=3, sticky=tk.E, pady=3)
-            value_labels[name] = val
 
-            last_w: list[int] = [0]
-
-            def make_trace(
-                n: str,
-                v: tk.DoubleVar,
-                lbl: ttk.Label,
-                cv: tk.Canvas,
-            ) -> None:
-                def _sync(_a: str | None = None, _b: str | None = None, _c: str | None = None) -> None:
-                    raw = float(v.get())
-                    iv = max(0, min(100, int(round(raw))))
-                    lbl.config(text=f"{iv} / 100")
-                    paint_trait_meter(cv, iv)
-                    if on_change is not None:
-                        on_change(n, iv)
-
-                v.trace_add("write", lambda *_: _sync())
-
-            make_trace(name, var, val, meter)
-
-            def on_stack_configure(evt: tk.Event, *, cv: tk.Canvas = meter, sc: ttk.Scale = scale, v: tk.DoubleVar = var) -> None:
-                if evt.widget != stack:
-                    return
-                nw = int(evt.width)
-                if nw < 40 or nw == last_w[0]:
-                    return
-                last_w[0] = nw
-                bw = max(_METER_MIN, min(_METER_MAX, nw))
-                cv._meter_px = bw
-                cv.config(width=bw)
-                sc.configure(length=bw)
-                iv = max(0, min(100, int(round(float(v.get())))))
-                paint_trait_meter(cv, iv, bw)
-
-            stack.bind("<Configure>", on_stack_configure)
-
-            rows[name] = (var, scale, trend, meter)
+            rows[name] = (trend, meter, val)
             paint_trait_meter(meter, 0, _METER_DEFAULT)
 
         inner.columnconfigure(1, weight=1)
 
-        return cls(lf, rows, value_labels, hint_label=hint)
+        panel = cls(lf, rows, inner=inner, hint_label=hint)
+        inner.bind("<Configure>", panel._on_inner_configure)
+        return panel
 
     def refresh_trends(self, values: dict[str, int], *, baseline: dict[str, int] | None = None) -> None:
-        """Update only trend arrows (cheap). Sliders already sync meters via traces."""
+        """Update trend arrows from the live trait map."""
         up, down, flat = "\u2191", "\u2193", "\u2192"
-        for name, (_var, _scale, trend_lbl, _meter) in self._rows.items():
+        for name, (trend_lbl, _meter, _val) in self._rows.items():
             v = max(0, min(100, int(values.get(name, 0))))
             if baseline is None or name not in baseline:
                 trend_lbl.config(text="—", fg=theme.COLOR_NEUTRAL)
@@ -192,11 +187,16 @@ class StatsPanel:
                     trend_lbl.config(text=flat, fg=theme.COLOR_NEUTRAL)
 
     def set_traits(self, values: dict[str, int], *, baseline: dict[str, int] | None = None) -> None:
-        for name, (var, _scale, trend_lbl, meter) in self._rows.items():
-            v = max(0, min(100, int(values.get(name, 0))))
-            var.set(float(v))
-            self._value_labels[name].config(text=f"{v} / 100")
-            mw = int(getattr(meter, "_meter_px", 0)) or meter.winfo_width() or _METER_DEFAULT
-            paint_trait_meter(meter, v, max(_METER_MIN, min(_METER_MAX, mw)))
+        for name in self._rows:
+            self._values[name] = max(0, min(100, int(values.get(name, 0))))
 
-        self.refresh_trends(values, baseline=baseline)
+        bw = self._last_meter_bw
+        if bw is None:
+            bw = _METER_DEFAULT
+
+        for name, (_trend, meter, val_lbl) in self._rows.items():
+            v = self._values[name]
+            val_lbl.config(text=f"{v} / 100")
+            paint_trait_meter(meter, v, bw)
+
+        self.refresh_trends(self._values, baseline=baseline)

@@ -1,4 +1,4 @@
-"""Main Tk window: top bar, scrollable body, panel composition, controls."""
+"""Main Tk window: top bar, body panels, controls."""
 
 from __future__ import annotations
 
@@ -87,6 +87,8 @@ class GameMainWindow:
             self._resample_weekly_events()
 
         self.root = tk.Tk()
+        # Avoid visible resize/reflow flicker while widgets are packed (common on Windows).
+        self.root.withdraw()
         self._update_title()
         self.root.minsize(*theme.WINDOW_MIN_SIZE)
 
@@ -96,59 +98,62 @@ class GameMainWindow:
         outer.pack(fill=tk.BOTH, expand=True)
 
         self._build_top_bar(outer)
-        canvas, scroll_inner = self._scroll_container(outer)
-        self._canvas_win = canvas.create_window((0, 0), window=scroll_inner, anchor=tk.NW)
 
-        scroll_inner.bind(
-            "<Configure>",
-            lambda _e: canvas.configure(scrollregion=canvas.bbox("all")),
-        )
+        body = ttk.Frame(outer)
+        body.pack(fill=tk.BOTH, expand=True)
 
-        def _stretch_inner(evt: tk.Event) -> None:
-            canvas.itemconfigure(self._canvas_win, width=evt.width)
+        right_col = ttk.Frame(body)
+        right_col.pack(side=tk.RIGHT, fill=tk.BOTH, padx=(12, 0))
 
-        canvas.bind("<Configure>", _stretch_inner)
+        left_wrap = ttk.Frame(body)
+        left_wrap.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        sb = ttk.Scrollbar(outer, orient=tk.VERTICAL, command=canvas.yview)
-        sb.pack(side=tk.RIGHT, fill=tk.Y)
-        canvas.pack(fill=tk.BOTH, expand=True, side=tk.LEFT)
-        canvas.configure(yscrollcommand=sb.set)
+        left_inner = ttk.Frame(left_wrap, padding=(0, 0, 8, 0))
+        left_inner.pack(fill=tk.BOTH, expand=True)
 
         trait_names = list(self._traits.keys())
-        self._stats_panel = StatsPanel.build(
-            scroll_inner,
-            trait_names,
-            on_change=self._on_trait_slider,
-        )
-        self._bind_summary_wraplength(scroll_inner)
+        self._stats_panel = StatsPanel.build(left_inner, trait_names)
+        self._bind_summary_wraplength(left_inner)
 
-        self._events_panel = EventsPanel.build(scroll_inner, self._on_event_reaction)
-        self._summary_panel = SummaryPanel.build(scroll_inner)
-        self._branch_panel = BranchTreePanel.build(scroll_inner)
-        self._build_controls(scroll_inner)
+        self._events_panel = EventsPanel.build(left_inner, self._on_event_reaction)
+        self._build_controls(left_inner)
 
-        def _wheel(evt: tk.Event) -> str | None:
-            canvas.yview_scroll(int(-1 * (evt.delta / 120)), "units")
-            return "break"
-
-        canvas.bind_all("<MouseWheel>", _wheel)
+        self._summary_panel = SummaryPanel.build(right_col)
+        self._branch_panel = BranchTreePanel.build(right_col, autopack=False)
+        self._sync_branch_panel_visibility()
 
         self._snapshot_trait_week_start()
         self.refresh_all()
 
-    def _bind_summary_wraplength(self, scroll_inner: ttk.Frame) -> None:
-        """Keep stats hint readable when the scroll area is resized."""
+        self.root.update_idletasks()
+        self.root.deiconify()
+
+    def _bind_summary_wraplength(self, left_inner: ttk.Frame) -> None:
+        """Keep stats hint readable when the left panel is resized."""
+
+        last_w: list[int | None] = [None]
 
         def _go(evt: tk.Event) -> None:
-            if evt.widget is not scroll_inner:
+            if evt.widget is not left_inner:
                 return
             try:
-                w = max(260, int(evt.width) - 72)
-                self._stats_panel.set_hint_wraplength(w)
+                nw = int(evt.width)
             except tk.TclError:
-                pass
+                return
+            if last_w[0] == nw:
+                return
+            last_w[0] = nw
+            self._stats_panel.set_hint_wraplength(max(260, nw - 72))
 
-        scroll_inner.bind("<Configure>", _go)
+        left_inner.bind("<Configure>", _go)
+
+    def _sync_branch_panel_visibility(self) -> None:
+        """Sidebar branch ASCII panel; optional via Options (popup still available)."""
+        if self._settings.show_branch_timeline_panel:
+            if not self._branch_panel.frame.winfo_ismapped():
+                self._branch_panel.frame.pack(fill=tk.BOTH, expand=True)
+        else:
+            self._branch_panel.frame.pack_forget()
 
     def _update_title(self) -> None:
         self.root.title(f"{theme.WINDOW_TITLE} — {self._branch_label}")
@@ -489,11 +494,6 @@ class GameMainWindow:
         age = self._child.get("age_years", "?")
         return f"Age {age} · Week {self._calendar_week}"
 
-    def _scroll_container(self, parent: ttk.Frame) -> tuple[tk.Canvas, ttk.Frame]:
-        canvas = tk.Canvas(parent, highlightthickness=0)
-        inner = ttk.Frame(canvas, padding=(0, 0, 8, 0))
-        return canvas, inner
-
     def _build_controls(self, parent: ttk.Frame) -> None:
         lf = ttk.LabelFrame(parent, text="Controls", padding=8)
         lf.pack(fill=tk.X)
@@ -517,6 +517,7 @@ class GameMainWindow:
             return
         self._apply_skip_infant_toddler_if_enabled()
         self._rebuild_week_summary()
+        self._sync_branch_panel_visibility()
         self.refresh_all()
 
     def _schedule_auto_uneventful(self) -> None:
@@ -580,12 +581,6 @@ class GameMainWindow:
             return
         self._advance_week()
         self.refresh_all()
-
-    def _on_trait_slider(self, name: str, value: int) -> None:
-        # Do not call set_traits here: each DoubleVar trace would re-enter and var.set()
-        # on all eight traits (feedback storm while dragging scales).
-        self._traits[name] = value
-        self._stats_panel.refresh_trends(self._traits, baseline=self._traits_at_week_start)
 
     def _on_event_reaction(self, event_index: int, reaction: str, intensity: int) -> None:
         self._apply_reaction(event_index, reaction, intensity)

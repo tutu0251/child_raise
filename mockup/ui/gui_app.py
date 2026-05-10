@@ -33,6 +33,7 @@ class MockupGuiApp:
     def __init__(self) -> None:
         self.session = MockSession(traits=initial_traits())
         self.root = tk.Tk()
+        self.root.withdraw()
         self.root.title(theme.WINDOW_TITLE_MOCKUP)
         self.root.minsize(*theme.WINDOW_MIN_SIZE)
 
@@ -47,38 +48,31 @@ class MockupGuiApp:
         outer.pack(fill=tk.BOTH, expand=True)
 
         self._build_top_bar(outer)
-        canvas, scroll_inner = self._scroll_container(outer)
-        self._canvas_win = canvas.create_window((0, 0), window=scroll_inner, anchor=tk.NW)
 
-        scroll_inner.bind(
-            "<Configure>",
-            lambda _e: canvas.configure(scrollregion=canvas.bbox("all")),
-        )
+        body = ttk.Frame(outer)
+        body.pack(fill=tk.BOTH, expand=True)
 
-        def _stretch_inner(evt: tk.Event) -> None:
-            canvas.itemconfigure(self._canvas_win, width=evt.width)
+        right_col = ttk.Frame(body)
+        right_col.pack(side=tk.RIGHT, fill=tk.BOTH, padx=(12, 0))
 
-        canvas.bind("<Configure>", _stretch_inner)
+        left_wrap = ttk.Frame(body)
+        left_wrap.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        sb = ttk.Scrollbar(outer, orient=tk.VERTICAL, command=canvas.yview)
-        sb.pack(side=tk.RIGHT, fill=tk.Y)
-        canvas.pack(fill=tk.BOTH, expand=True, side=tk.LEFT)
-        canvas.configure(yscrollcommand=sb.set)
+        left_inner = ttk.Frame(left_wrap, padding=(0, 0, 8, 0))
+        left_inner.pack(fill=tk.BOTH, expand=True)
 
-        self._build_personality_panel(scroll_inner)
-        self._build_early_years_panel(scroll_inner)
-        self._build_weekly_events_panel(scroll_inner)
-        self._build_weekly_summary_panel(scroll_inner)
-        self._build_branch_panel(scroll_inner)
-        self._build_controls_panel(scroll_inner)
+        self._build_personality_panel(left_inner)
+        self._build_early_years_panel(left_inner)
+        self._build_weekly_events_panel(left_inner)
+        self._build_controls_panel(left_inner)
 
-        def _wheel(evt: tk.Event) -> str | None:
-            canvas.yview_scroll(int(-1 * (evt.delta / 120)), "units")
-            return "break"
-
-        canvas.bind_all("<MouseWheel>", _wheel)
+        self._build_weekly_summary_panel(right_col)
+        self._build_branch_panel(right_col)
 
         self.refresh_all()
+
+        self.root.update_idletasks()
+        self.root.deiconify()
 
     def _build_top_bar(self, parent: ttk.Frame) -> None:
         bar = ttk.LabelFrame(parent, text="Child overview", padding=8)
@@ -100,11 +94,6 @@ class MockupGuiApp:
             lbl = ttk.Label(grid, text=initial)
             lbl.grid(row=1, column=col, sticky=tk.W, padx=(0, 16))
             self._top_labels[key] = lbl
-
-    def _scroll_container(self, parent: ttk.Frame) -> tuple[tk.Canvas, ttk.Frame]:
-        canvas = tk.Canvas(parent, highlightthickness=0)
-        inner = ttk.Frame(canvas, padding=(0, 0, 8, 0))
-        return canvas, inner
 
     def _build_personality_panel(self, parent: ttk.Frame) -> None:
         lf = ttk.LabelFrame(parent, text="Personality stats (placeholders)", padding=8)

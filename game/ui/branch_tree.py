@@ -58,9 +58,10 @@ class BranchTreePanel:
         self._text = text
 
     @classmethod
-    def build(cls, parent: tk.Misc) -> BranchTreePanel:
+    def build(cls, parent: tk.Misc, *, autopack: bool = True) -> BranchTreePanel:
         lf = ttk.LabelFrame(parent, text="Branch timeline (saves + this run)", padding=8)
-        lf.pack(fill=tk.BOTH, expand=True, pady=(0, 8))
+        if autopack:
+            lf.pack(fill=tk.BOTH, expand=True, pady=(0, 8))
 
         txt = tk.Text(lf, height=14, wrap=tk.NONE, font=theme.FONT_MONO)
         bx = ttk.Scrollbar(lf, orient=tk.HORIZONTAL, command=txt.xview)
