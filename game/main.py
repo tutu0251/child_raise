@@ -1,9 +1,10 @@
-"""Real game v1.0 entry — loads JSON templates, opens Tk shell."""
+"""Real game v1.0 entry — loads JSON templates, new-game dialog, opens Tk shell."""
 
 from __future__ import annotations
 
 import random
 import sys
+import tkinter as tk
 from pathlib import Path
 
 # Allow `python main.py` from inside `game/` as well as `python -m game.main` from repo root.
@@ -13,12 +14,14 @@ if _rp not in sys.path:
     sys.path.insert(0, _rp)
 
 from game.template_data import (
+    apply_new_game_choices,
     load_child_templates,
     load_events_templates,
     profile_to_game_child,
     sample_weekly_events,
 )
 from game.ui.layout import GameMainWindow
+from game.ui.new_game_dialog import show_new_game_dialog
 
 DATA_DIR = Path(__file__).resolve().parent / "data"
 
@@ -61,7 +64,22 @@ def main() -> None:
     profiles = load_child_templates(DATA_DIR / "child_templates.json")
     catalog = load_events_templates(DATA_DIR / "events_templates.json")
 
-    profile = rng.choice(profiles)
+    root = tk.Tk()
+    root.withdraw()
+    root.update_idletasks()
+    choices = show_new_game_dialog(root, profiles)
+    root.destroy()
+
+    if choices is None:
+        return
+
+    profile = apply_new_game_choices(
+        choices["template"],
+        start_age_years=choices["start_age_years"],
+        gender=choices["gender"],
+        temperament=choices["temperament"],
+        calendar_week=1,
+    )
     child, traits = profile_to_game_child(profile)
 
     age_years = int(child["age_years"])

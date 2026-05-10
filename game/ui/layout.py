@@ -23,7 +23,7 @@ from game.persistence import (
 )
 from game.narrative_placeholder import build_weekly_narrative_feedback
 from game.settings import GameSettings
-from game.template_data import DEFAULT_TRAIT_KEYS, sample_weekly_events
+from game.template_data import DEFAULT_TRAIT_KEYS, merge_child_stat_defaults, sample_weekly_events
 from game.trait_updates import REACTION_KINDS, apply_trait_deltas, format_delta_line, trait_deltas
 from game.ui.options_dialog import show_options_dialog
 from game.ui.branch_tree import BranchTreePanel
@@ -85,6 +85,8 @@ class GameMainWindow:
             self._restore_save_payload(resume_payload)
         else:
             self._resample_weekly_events()
+
+        self._child = merge_child_stat_defaults(self._child)
 
         self.root = tk.Tk()
         # Avoid visible resize/reflow flicker while widgets are packed (common on Windows).
@@ -322,6 +324,7 @@ class GameMainWindow:
         except ValueError as e:
             messagebox.showerror("Resume", str(e))
             return
+        self._child = merge_child_stat_defaults(self._child)
         self._last_save_path = path if not fork else None
         self._update_title()
         self.refresh_all()
@@ -490,6 +493,20 @@ class GameMainWindow:
             lbl.grid(row=1, column=col, sticky=tk.W, padx=(0, 16))
             self._top_labels[key] = lbl
 
+        stat_placeholders = [
+            ("intel_lbl", "Intelligence", str(self._child.get("intelligence", ""))),
+            ("social_lbl", "Social", str(self._child.get("social_tendency", ""))),
+            ("health_lbl", "Health", str(self._child.get("health", ""))),
+            ("energy_lbl", "Energy", str(self._child.get("energy", ""))),
+        ]
+        for col, (key, title, initial) in enumerate(stat_placeholders):
+            ttk.Label(grid, text=f"{title}:", font=theme.FONT_UI_HEADER).grid(
+                row=2, column=col, sticky=tk.W, padx=(0, 12), pady=(8, 2)
+            )
+            lbl = ttk.Label(grid, text=initial)
+            lbl.grid(row=3, column=col, sticky=tk.W, padx=(0, 16))
+            self._top_labels[key] = lbl
+
     def _format_age_week(self) -> str:
         age = self._child.get("age_years", "?")
         return f"Age {age} · Week {self._calendar_week}"
@@ -653,6 +670,10 @@ class GameMainWindow:
         self._top_labels["gender_lbl"].config(text=str(self._child.get("gender", "")))
         self._top_labels["branch_lbl"].config(text=str(self._child.get("branch", "")))
         self._top_labels["temp_lbl"].config(text=str(self._child.get("temperament", "")))
+        self._top_labels["intel_lbl"].config(text=str(self._child.get("intelligence", "")))
+        self._top_labels["social_lbl"].config(text=str(self._child.get("social_tendency", "")))
+        self._top_labels["health_lbl"].config(text=str(self._child.get("health", "")))
+        self._top_labels["energy_lbl"].config(text=str(self._child.get("energy", "")))
 
         if self._weekly_slots:
             self._uneventful_auto_chain = 0
@@ -668,32 +689,10 @@ class GameMainWindow:
 
 
 def main() -> None:
-    """Fallback launcher using packaged JSON (prefer `python -m game.main`)."""
-    from game.template_data import (
-        load_child_templates,
-        load_events_templates,
-        profile_to_game_child,
-    )
+    """Same entry as ``python -m game.main`` (new-game dialog + main window)."""
+    from game.main import main as game_main
 
-    game_root = Path(__file__).resolve().parents[1]
-    data_dir = game_root / "data"
-    rng = random.Random()
-    profiles = load_child_templates(data_dir / "child_templates.json")
-    catalog = load_events_templates(data_dir / "events_templates.json")
-    profile = rng.choice(profiles)
-    child, traits = profile_to_game_child(profile)
-
-    GameMainWindow(
-        child=child,
-        traits=traits,
-        events_catalog=catalog,
-        rng=rng,
-        summary_narrative=(
-            f"This week's overview for {child['name']}: placeholder narrative until "
-            "the generator reads reactions and traits."
-        ),
-        stats_blurb="Templates loaded from game/data — reactions still UI-only placeholders.",
-    ).run()
+    game_main()
 
 
 __all__ = ["GameMainWindow", "main"]

@@ -17,12 +17,134 @@ from game.persistence import (
     traits_compact,
 )
 from game.settings import GameSettings
-from game.template_data import DEFAULT_TRAIT_KEYS, load_events_templates, sample_weekly_events
+from game.template_data import (
+    DEFAULT_ENERGY,
+    DEFAULT_HEALTH,
+    DEFAULT_INTELLIGENCE,
+    DEFAULT_SOCIAL_TENDENCY,
+    DEFAULT_TRAIT_KEYS,
+    apply_new_game_choices,
+    load_child_templates,
+    load_events_templates,
+    profile_to_game_child,
+    sample_weekly_events,
+)
 from game.trait_updates import REACTION_KINDS, apply_trait_deltas, trait_deltas
 
 
 GAME_ROOT = Path(__file__).resolve().parents[1] / "game"
 EVENTS_JSON = GAME_ROOT / "data" / "events_templates.json"
+CHILD_JSON = GAME_ROOT / "data" / "child_templates.json"
+
+
+class TestNewGameProfileInit(unittest.TestCase):
+    def test_apply_new_game_choices_start_age_and_profile_to_child(self) -> None:
+        if not CHILD_JSON.is_file():
+            raise unittest.SkipTest("child_templates.json missing")
+        profiles = load_child_templates(CHILD_JSON)
+        self.assertTrue(profiles)
+        base = dict(profiles[0])
+        profile = apply_new_game_choices(
+            base,
+            start_age_years=3,
+            gender="Girl",
+            temperament="Test temperament",
+            calendar_week=1,
+        )
+        self.assertEqual(profile["age_years"], 3)
+        self.assertEqual(profile["calendar_week"], 1)
+        self.assertEqual(profile["gender"], "Girl")
+        self.assertEqual(profile["temperament"], "Test temperament")
+
+        child, traits = profile_to_game_child(profile)
+        self.assertEqual(int(child["age_years"]), 3)
+        self.assertEqual(int(child["calendar_week"]), 1)
+        self.assertEqual(str(child["gender"]), "Girl")
+        self.assertEqual(str(child["temperament"]), "Test temperament")
+        self.assertIn("intelligence", child)
+        self.assertIn("social_tendency", child)
+        self.assertIn("health", child)
+        self.assertIn("energy", child)
+        self.assertEqual(int(child["intelligence"]), DEFAULT_INTELLIGENCE)
+        self.assertEqual(int(child["social_tendency"]), DEFAULT_SOCIAL_TENDENCY)
+        self.assertEqual(int(child["health"]), DEFAULT_HEALTH)
+        self.assertEqual(int(child["energy"]), DEFAULT_ENERGY)
+        self.assertTrue(traits)
+
+    def test_profile_optional_stats_from_template(self) -> None:
+        profile = {
+            "name": "Unit",
+            "age_years": 0,
+            "calendar_week": 1,
+            "gender": "Boy",
+            "branch": "B",
+            "temperament": "T",
+            "baseline_traits": {k: 50 for k in DEFAULT_TRAIT_KEYS},
+            "intelligence": 62,
+            "social_tendency": 48,
+            "health": 88,
+            "energy": 77,
+        }
+        child, _ = profile_to_game_child(profile)
+        self.assertEqual(int(child["intelligence"]), 62)
+        self.assertEqual(int(child["social_tendency"]), 48)
+        self.assertEqual(int(child["health"]), 88)
+        self.assertEqual(int(child["energy"]), 77)
+
+    def test_start_age_zero(self) -> None:
+        p = apply_new_game_choices(
+            {"id": "x", "name": "N", "age_years": 8, "gender": "x", "temperament": "y", "branch": "b"},
+            start_age_years=0,
+            gender="",
+            temperament="",
+            calendar_week=5,
+        )
+        self.assertEqual(p["age_years"], 0)
+        self.assertEqual(p["calendar_week"], 5)
+
+
+class TestGameMainWindowTopBar(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        if not EVENTS_JSON.is_file():
+            raise unittest.SkipTest("events_templates.json missing")
+
+    def test_top_bar_reflects_child_age_and_stats(self) -> None:
+        from game.ui.layout import GameMainWindow
+
+        catalog = load_events_templates(EVENTS_JSON)
+        profile = apply_new_game_choices(
+            {
+                "id": "gui_test",
+                "name": "Alex",
+                "age_years": 8,
+                "calendar_week": 99,
+                "gender": "Boy",
+                "temperament": "Calm",
+                "branch": "Main",
+                "baseline_traits": {k: 50 for k in DEFAULT_TRAIT_KEYS},
+            },
+            start_age_years=3,
+            gender="Non-binary",
+            temperament="Calm",
+            calendar_week=1,
+        )
+        child, traits = profile_to_game_child(profile)
+
+        win = GameMainWindow(
+            child=child,
+            traits=traits,
+            events_catalog=catalog,
+            summary_narrative="Test",
+            stats_blurb="Blurb",
+            rng=None,
+        )
+        try:
+            self.assertEqual(win._top_labels["week_lbl"].cget("text"), "Age 3 · Week 1")
+            self.assertEqual(win._top_labels["gender_lbl"].cget("text"), "Non-binary")
+            self.assertEqual(win._top_labels["intel_lbl"].cget("text"), str(DEFAULT_INTELLIGENCE))
+        finally:
+            win.root.destroy()
 
 
 class TestTraitProgression(unittest.TestCase):

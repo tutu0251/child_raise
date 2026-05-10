@@ -7,6 +7,11 @@ import random
 from pathlib import Path
 
 
+DEFAULT_INTELLIGENCE: int = 50
+DEFAULT_SOCIAL_TENDENCY: int = 50
+DEFAULT_HEALTH: int = 100
+DEFAULT_ENERGY: int = 100
+
 DEFAULT_TRAIT_KEYS: tuple[str, ...] = (
     "Openness",
     "Conscientiousness",
@@ -26,6 +31,50 @@ _STAGE_DEFAULT_WEIGHTS: dict[str, dict[str, float]] = {
     "middle_childhood": {k: 0.075 for k in DEFAULT_TRAIT_KEYS},
     "adolescence": {k: 0.08 for k in DEFAULT_TRAIT_KEYS},
 }
+
+
+def _clamp_optional_int(value: object, default: int, lo: int, hi: int) -> int:
+    if value is None:
+        return default
+    try:
+        return max(lo, min(hi, int(value)))
+    except (TypeError, ValueError):
+        return default
+
+
+def merge_child_stat_defaults(child: dict[str, str | int]) -> dict[str, str | int]:
+    """Ensure newer UI/stat keys exist when loading saves created before those fields."""
+    out = dict(child)
+    out.setdefault("intelligence", DEFAULT_INTELLIGENCE)
+    out.setdefault("social_tendency", DEFAULT_SOCIAL_TENDENCY)
+    out.setdefault("health", DEFAULT_HEALTH)
+    out.setdefault("energy", DEFAULT_ENERGY)
+    return out
+
+
+def apply_new_game_choices(
+    template: dict,
+    *,
+    start_age_years: int,
+    gender: str,
+    temperament: str,
+    calendar_week: int = 1,
+) -> dict:
+    """Merge new-game dialog choices into a profile dict (mutates a shallow copy only)."""
+    profile = dict(template)
+    age = int(start_age_years)
+    profile["age_years"] = 3 if age == 3 else 0
+    profile["calendar_week"] = max(1, int(calendar_week))
+
+    g = str(gender).strip()
+    if g:
+        profile["gender"] = g
+
+    t = str(temperament).strip()
+    if t:
+        profile["temperament"] = t
+
+    return profile
 
 
 def load_child_templates(path: Path | str) -> list[dict]:
@@ -179,5 +228,13 @@ def profile_to_game_child(profile: dict) -> tuple[dict[str, str | int], dict[str
         "gender": str(profile.get("gender", "")),
         "branch": str(profile.get("branch", "")),
         "temperament": str(profile.get("temperament", "")),
+        "intelligence": _clamp_optional_int(
+            profile.get("intelligence"), DEFAULT_INTELLIGENCE, 0, 100
+        ),
+        "social_tendency": _clamp_optional_int(
+            profile.get("social_tendency"), DEFAULT_SOCIAL_TENDENCY, 0, 100
+        ),
+        "health": _clamp_optional_int(profile.get("health"), DEFAULT_HEALTH, 0, 100),
+        "energy": _clamp_optional_int(profile.get("energy"), DEFAULT_ENERGY, 0, 100),
     }
     return child, traits
