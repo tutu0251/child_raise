@@ -679,7 +679,14 @@ class GameMainWindow:
             self._uneventful_auto_chain = 0
 
         self._stats_panel.set_traits(self._traits, baseline=self._traits_at_week_start)
-        self._events_panel.set_events(self._event_descriptions)
+        self._events_panel.set_events(
+            [
+                (str(s.get("category", "")), str(s.get("text", "")))
+                for s in self._weekly_slots
+            ]
+            if self._weekly_slots
+            else []
+        )
         self._summary_panel.set_content(self._summary_narrative, self._stats_blurb)
         self._branch_panel.set_lines(self._branch_lines())
         self.root.after_idle(self._schedule_auto_uneventful)

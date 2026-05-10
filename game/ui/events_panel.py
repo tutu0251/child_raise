@@ -117,12 +117,12 @@ class EventsPanel:
         update_status()
         return panel
 
-    def set_events(self, descriptions: list[str]) -> None:
+    def set_events(self, rows: list[tuple[str, str]] | list[str]) -> None:
         for w in self._choices_host.winfo_children():
             w.destroy()
         self._event_var.set(-1)
 
-        if not descriptions:
+        if not rows:
             ttk.Label(
                 self._choices_host,
                 text="No events this week.",
@@ -133,15 +133,29 @@ class EventsPanel:
             )
             return
 
-        for i, desc in enumerate(descriptions):
-            row = ttk.Frame(self._choices_host)
-            row.pack(fill=tk.X, pady=(0, 4))
+        for i, row in enumerate(rows):
+            if isinstance(row, tuple):
+                category, desc = str(row[0]).strip(), str(row[1])
+            else:
+                category, desc = "", str(row)
+            row_fr = ttk.Frame(self._choices_host)
+            row_fr.pack(fill=tk.X, pady=(0, 4))
             ttk.Radiobutton(
-                row,
+                row_fr,
                 text=f"Event {i + 1}",
                 variable=self._event_var,
                 value=i,
             ).pack(side=tk.LEFT, padx=(0, 8))
-            ttk.Label(row, text=desc, wraplength=600).pack(side=tk.LEFT, fill=tk.X, expand=True)
+            label_col = ttk.Frame(row_fr)
+            label_col.pack(side=tk.LEFT, fill=tk.X, expand=True)
+            if category:
+                ttk.Label(
+                    label_col,
+                    text=f"[{category}]",
+                    font=theme.FONT_UI_HEADER,
+                    width=14,
+                    anchor=tk.W,
+                ).pack(side=tk.LEFT, padx=(0, 8))
+            ttk.Label(label_col, text=desc, wraplength=520).pack(side=tk.LEFT, fill=tk.X, expand=True)
 
         self._status.config(text="Select an event, set intensity, then tap a reaction.")

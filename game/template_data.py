@@ -1,4 +1,4 @@
-"""Load parametric child/event templates and sample age-appropriate weekly events."""
+"""Load parametric child/event templates and sample age-appropriate weekly events by category."""
 
 from __future__ import annotations
 
@@ -22,6 +22,17 @@ DEFAULT_TRAIT_KEYS: tuple[str, ...] = (
     "Independence",
     "Risk-taking",
 )
+
+EVENT_CATEGORIES: tuple[str, ...] = (
+    "Emotional",
+    "Social",
+    "Learning",
+    "Behavior",
+    "Milestone",
+    "Health",
+)
+
+_EVENT_CATEGORY_SET: frozenset[str] = frozenset(EVENT_CATEGORIES)
 
 _STAGE_DEFAULT_WEIGHTS: dict[str, dict[str, float]] = {
     "infant": {k: 0.055 for k in DEFAULT_TRAIT_KEYS},
@@ -99,6 +110,19 @@ def child_age_years_exact(age_years: int, calendar_week: int) -> float:
     return float(age_years) + (w - 1) / 52.0
 
 
+def canonical_event_category(raw: object) -> str | None:
+    """Return a valid category string, or None if missing/invalid."""
+    if not isinstance(raw, str):
+        return None
+    s = raw.strip()
+    return s if s in _EVENT_CATEGORY_SET else None
+
+
+def event_category(event: dict, *, fallback: str = "Behavior") -> str:
+    c = canonical_event_category(event.get("category"))
+    return c if c is not None else fallback
+
+
 def events_matching_age(catalog: list[dict], age_exact: float) -> list[dict]:
     out: list[dict] = []
     for e in catalog:
@@ -150,6 +174,32 @@ def render_event_template(
     return template.format(**picks)
 
 
+def _event_identity(ev: dict) -> str:
+    eid = ev.get("id")
+    if eid is not None:
+        return str(eid)
+    return str(id(ev))
+
+
+def _pick_category_order_weighted(
+    by_cat: dict[str, list[dict]],
+    rng: random.Random,
+    *,
+    limit: int,
+) -> list[str]:
+    """Distinct categories, weighted toward categories with fewer templates (diversity)."""
+    remaining = [c for c in EVENT_CATEGORIES if c in by_cat]
+    if not remaining:
+        remaining = list(by_cat.keys())
+    weights = [1.0 / max(1, len(by_cat[c])) for c in remaining]
+    order: list[str] = []
+    while remaining and len(order) < limit:
+        idx = rng.choices(range(len(remaining)), weights=weights, k=1)[0]
+        order.append(remaining.pop(idx))
+        weights.pop(idx)
+    return order
+
+
 def sample_weekly_events(
     catalog: list[dict],
     *,
@@ -159,11 +209,22 @@ def sample_weekly_events(
     caretaker: str = "you",
     rng: random.Random | None = None,
     max_events: int = 3,
+    categories_to_draw: tuple[str, ...] | list[str] | None = None,
 ) -> list[dict]:
-    """Pick a random count in 0..min(3, pool) inclusive; return rendered slots with weights."""
+    """Pick a random count in 0..min(max_events, pool); prefer one event per category, then fill."""
     rng = rng or random.Random()
     age_exact = child_age_years_exact(age_years, calendar_week)
     pool = events_matching_age(catalog, age_exact)
+    if not pool:
+        return []
+
+    if categories_to_draw is not None:
+        allowed = {
+            c for raw in categories_to_draw if (c := canonical_event_category(raw)) is not None
+        }
+        if allowed:
+            pool = [e for e in pool if event_category(e) in allowed]
+
     if not pool:
         return []
 
@@ -172,15 +233,43 @@ def sample_weekly_events(
     if k == 0:
         return []
 
-    chosen = rng.sample(pool, k=k)
+    by_cat: dict[str, list[dict]] = {}
+    for e in pool:
+        by_cat.setdefault(event_category(e), []).append(e)
+
+    category_order = _pick_category_order_weighted(by_cat, rng, limit=min(k, len(by_cat)))
+
+    chosen_raw: list[dict] = []
+    used: set[str] = set()
+
+    for cat in category_order:
+        if len(chosen_raw) >= k:
+            break
+        bucket = [e for e in by_cat.get(cat, ()) if _event_identity(e) not in used]
+        if not bucket:
+            continue
+        pick = rng.choice(bucket)
+        chosen_raw.append(pick)
+        used.add(_event_identity(pick))
+
+    while len(chosen_raw) < k:
+        leftovers = [e for e in pool if _event_identity(e) not in used]
+        if not leftovers:
+            break
+        pick = rng.choice(leftovers)
+        chosen_raw.append(pick)
+        used.add(_event_identity(pick))
+
     slots: list[dict] = []
-    for e in chosen:
+    for e in chosen_raw:
         text = render_event_template(e, rng, child_name=child_name, caretaker=caretaker)
+        cat = event_category(e)
         slots.append(
             {
                 "id": e.get("id"),
                 "text": text,
                 "trait_weights": trait_weights_for_event(e),
+                "category": cat,
             }
         )
     return slots
@@ -195,6 +284,7 @@ def sample_weekly_event_strings(
     caretaker: str = "you",
     rng: random.Random | None = None,
     max_events: int = 3,
+    categories_to_draw: tuple[str, ...] | list[str] | None = None,
 ) -> list[str]:
     """Convenience: text lines only (0–3 events)."""
     return [
@@ -207,6 +297,7 @@ def sample_weekly_event_strings(
             caretaker=caretaker,
             rng=rng,
             max_events=max_events,
+            categories_to_draw=categories_to_draw,
         )
     ]
 

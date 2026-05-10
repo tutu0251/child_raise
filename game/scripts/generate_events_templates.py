@@ -1,5 +1,5 @@
 """
-Regenerate game/data/events_templates.json (193 parametric events).
+Regenerate game/data/events_templates.json (193 parametric events + category).
 
 Run from repo root: python -m game.scripts.generate_events_templates
 """
@@ -10,6 +10,8 @@ import hashlib
 import json
 import random
 from pathlib import Path
+
+from game.template_data import EVENT_CATEGORIES
 
 _TRAIT_KEYS: tuple[str, ...] = (
     "Openness",
@@ -233,6 +235,7 @@ def build_events() -> list[dict]:
                 {
                     "id": f"{stage_id}_{i + 1:03d}",
                     "stage_id": stage_id,
+                    "category": EVENT_CATEGORIES[i % len(EVENT_CATEGORIES)],
                     "age_min_years": lo,
                     "age_max_years": hi,
                     "template": template,
@@ -247,8 +250,8 @@ def main() -> None:
     game_root = Path(__file__).resolve().parents[1]
     out = game_root / "data" / "events_templates.json"
     payload = {
-        "schema_version": 1,
-        "description": "Parametric weekly events with trait_weights (× intensity × reaction modifiers).",
+        "schema_version": 2,
+        "description": "Parametric weekly events with category, trait_weights (× intensity × reaction modifiers).",
         "event_count": 193,
         "events": build_events(),
     }

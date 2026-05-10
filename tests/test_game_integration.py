@@ -23,6 +23,7 @@ from game.template_data import (
     DEFAULT_INTELLIGENCE,
     DEFAULT_SOCIAL_TENDENCY,
     DEFAULT_TRAIT_KEYS,
+    EVENT_CATEGORIES,
     apply_new_game_choices,
     load_child_templates,
     load_events_templates,
@@ -190,6 +191,87 @@ class TestWeeklyEvents(unittest.TestCase):
                 self.assertIn("text", s)
                 self.assertIn("trait_weights", s)
                 self.assertEqual(len(s["trait_weights"]), len(DEFAULT_TRAIT_KEYS))
+                self.assertIn("category", s)
+                self.assertIn(s["category"], EVENT_CATEGORIES)
+
+    def test_sample_weekly_events_category_filter(self) -> None:
+        import random
+
+        catalog = [
+            {
+                "id": "t_learn",
+                "stage_id": "middle_childhood",
+                "category": "Learning",
+                "age_min_years": 5.0,
+                "age_max_years": 12.0,
+                "template": "Study {child_name}",
+                "pools": {},
+            },
+            {
+                "id": "t_social",
+                "stage_id": "middle_childhood",
+                "category": "Social",
+                "age_min_years": 5.0,
+                "age_max_years": 12.0,
+                "template": "Friends {child_name}",
+                "pools": {},
+            },
+            {
+                "id": "t_health",
+                "stage_id": "middle_childhood",
+                "category": "Health",
+                "age_min_years": 5.0,
+                "age_max_years": 12.0,
+                "template": "Rest {child_name}",
+                "pools": {},
+            },
+        ]
+        rng = random.Random(0)
+        for _ in range(50):
+            slots = sample_weekly_events(
+                catalog,
+                age_years=8,
+                calendar_week=1,
+                child_name="Kid",
+                rng=rng,
+                max_events=3,
+                categories_to_draw=("Learning", "Social"),
+            )
+            self.assertLessEqual(len(slots), 3)
+            for s in slots:
+                self.assertIn(s["category"], ("Learning", "Social"))
+
+    def test_sample_weekly_events_prefers_distinct_categories(self) -> None:
+        import random
+
+        catalog = [
+            {
+                "id": f"c{i}",
+                "stage_id": "middle_childhood",
+                "category": cat,
+                "age_min_years": 0.0,
+                "age_max_years": 18.0,
+                "template": f"Situation {i} for {{child_name}}",
+                "pools": {},
+            }
+            for i, cat in enumerate(EVENT_CATEGORIES[:3])
+        ]
+        rng = random.Random(12345)
+        slots = sample_weekly_events(
+            catalog,
+            age_years=10,
+            calendar_week=1,
+            child_name="X",
+            rng=rng,
+            max_events=3,
+        )
+        if len(slots) == 3:
+            cats = [s["category"] for s in slots]
+            self.assertEqual(len(cats), len(set(cats)), cats)
+
+    def test_sample_weekly_events_templates_have_category_field(self) -> None:
+        missing = [e for e in self._catalog if "category" not in e]
+        self.assertEqual(missing, [])
 
 
 class TestPersistence(unittest.TestCase):

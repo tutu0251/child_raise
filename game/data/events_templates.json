@@ -1,11 +1,12 @@
 {
-  "schema_version": 1,
-  "description": "Parametric weekly events with trait_weights (× intensity × reaction modifiers).",
+  "schema_version": 2,
+  "description": "Parametric weekly events with category, trait_weights (× intensity × reaction modifiers).",
   "event_count": 193,
   "events": [
     {
       "id": "infant_001",
       "stage_id": "infant",
+      "category": "Emotional",
       "age_min_years": 0.0,
       "age_max_years": 0.999,
       "template": "{child_name} settled quickly after {routine} while {caretaker} offered {comfort}.",
@@ -44,6 +45,7 @@
     {
       "id": "infant_002",
       "stage_id": "infant",
+      "category": "Social",
       "age_min_years": 0.0,
       "age_max_years": 0.999,
       "template": "During {activity}, {child_name} tracked sounds with {focus} while {caretaker} stayed close.",
@@ -80,6 +82,7 @@
     {
       "id": "infant_003",
       "stage_id": "infant",
+      "category": "Learning",
       "age_min_years": 0.0,
       "age_max_years": 0.999,
       "template": "{child_name} signaled {need}; {caretaker} responded with {response}.",
@@ -118,6 +121,7 @@
     {
       "id": "infant_004",
       "stage_id": "infant",
+      "category": "Behavior",
       "age_min_years": 0.0,
       "age_max_years": 0.999,
       "template": "{child_name} settled quickly after {routine} while {caretaker} offered {comfort}.",
@@ -156,6 +160,7 @@
     {
       "id": "infant_005",
       "stage_id": "infant",
+      "category": "Milestone",
       "age_min_years": 0.0,
       "age_max_years": 0.999,
       "template": "During {activity}, {child_name} tracked sounds with {focus} while {caretaker} stayed close.",
@@ -192,6 +197,7 @@
     {
       "id": "infant_006",
       "stage_id": "infant",
+      "category": "Health",
       "age_min_years": 0.0,
       "age_max_years": 0.999,
       "template": "{child_name} signaled {need}; {caretaker} responded with {response}.",
@@ -230,6 +236,7 @@
     {
       "id": "infant_007",
       "stage_id": "infant",
+      "category": "Emotional",
       "age_min_years": 0.0,
       "age_max_years": 0.999,
       "template": "{child_name} settled quickly after {routine} while {caretaker} offered {comfort}.",
@@ -268,6 +275,7 @@
     {
       "id": "infant_008",
       "stage_id": "infant",
+      "category": "Social",
       "age_min_years": 0.0,
       "age_max_years": 0.999,
       "template": "During {activity}, {child_name} tracked sounds with {focus} while {caretaker} stayed close.",
@@ -304,6 +312,7 @@
     {
       "id": "infant_009",
       "stage_id": "infant",
+      "category": "Learning",
       "age_min_years": 0.0,
       "age_max_years": 0.999,
       "template": "{child_name} signaled {need}; {caretaker} responded with {response}.",
@@ -342,6 +351,7 @@
     {
       "id": "infant_010",
       "stage_id": "infant",
+      "category": "Behavior",
       "age_min_years": 0.0,
       "age_max_years": 0.999,
       "template": "{child_name} settled quickly after {routine} while {caretaker} offered {comfort}.",
@@ -380,6 +390,7 @@
     {
       "id": "infant_011",
       "stage_id": "infant",
+      "category": "Milestone",
       "age_min_years": 0.0,
       "age_max_years": 0.999,
       "template": "During {activity}, {child_name} tracked sounds with {focus} while {caretaker} stayed close.",
@@ -416,6 +427,7 @@
     {
       "id": "infant_012",
       "stage_id": "infant",
+      "category": "Health",
       "age_min_years": 0.0,
       "age_max_years": 0.999,
       "template": "{child_name} signaled {need}; {caretaker} responded with {response}.",
@@ -454,6 +466,7 @@
     {
       "id": "infant_013",
       "stage_id": "infant",
+      "category": "Emotional",
       "age_min_years": 0.0,
       "age_max_years": 0.999,
       "template": "{child_name} settled quickly after {routine} while {caretaker} offered {comfort}.",
@@ -492,6 +505,7 @@
     {
       "id": "infant_014",
       "stage_id": "infant",
+      "category": "Social",
       "age_min_years": 0.0,
       "age_max_years": 0.999,
       "template": "During {activity}, {child_name} tracked sounds with {focus} while {caretaker} stayed close.",
@@ -528,6 +542,7 @@
     {
       "id": "infant_015",
       "stage_id": "infant",
+      "category": "Learning",
       "age_min_years": 0.0,
       "age_max_years": 0.999,
       "template": "{child_name} signaled {need}; {caretaker} responded with {response}.",
@@ -566,6 +581,7 @@
     {
       "id": "toddler_001",
       "stage_id": "toddler",
+      "category": "Emotional",
       "age_min_years": 1.0,
       "age_max_years": 2.999,
       "template": "{child_name} {verb} when asked to share {toy} at {place}.",
@@ -609,6 +625,7 @@
     {
       "id": "toddler_002",
       "stage_id": "toddler",
+      "category": "Social",
       "age_min_years": 1.0,
       "age_max_years": 2.999,
       "template": "At {routine}, {child_name} wanted {preference}; {caretaker} offered {boundary}.",
@@ -651,6 +668,7 @@
     {
       "id": "toddler_003",
       "stage_id": "toddler",
+      "category": "Learning",
       "age_min_years": 1.0,
       "age_max_years": 2.999,
       "template": "{child_name} practiced {skill} and reacted with {emotion} after {outcome}.",
@@ -694,6 +712,7 @@
     {
       "id": "toddler_004",
       "stage_id": "toddler",
+      "category": "Behavior",
       "age_min_years": 1.0,
       "age_max_years": 2.999,
       "template": "{child_name} {verb} when asked to share {toy} at {place}.",
@@ -737,6 +756,7 @@
     {
       "id": "toddler_005",
       "stage_id": "toddler",
+      "category": "Milestone",
       "age_min_years": 1.0,
       "age_max_years": 2.999,
       "template": "At {routine}, {child_name} wanted {preference}; {caretaker} offered {boundary}.",
@@ -779,6 +799,7 @@
     {
       "id": "toddler_006",
       "stage_id": "toddler",
+      "category": "Health",
       "age_min_years": 1.0,
       "age_max_years": 2.999,
       "template": "{child_name} practiced {skill} and reacted with {emotion} after {outcome}.",
@@ -822,6 +843,7 @@
     {
       "id": "toddler_007",
       "stage_id": "toddler",
+      "category": "Emotional",
       "age_min_years": 1.0,
       "age_max_years": 2.999,
       "template": "{child_name} {verb} when asked to share {toy} at {place}.",
@@ -865,6 +887,7 @@
     {
       "id": "toddler_008",
       "stage_id": "toddler",
+      "category": "Social",
       "age_min_years": 1.0,
       "age_max_years": 2.999,
       "template": "At {routine}, {child_name} wanted {preference}; {caretaker} offered {boundary}.",
@@ -907,6 +930,7 @@
     {
       "id": "toddler_009",
       "stage_id": "toddler",
+      "category": "Learning",
       "age_min_years": 1.0,
       "age_max_years": 2.999,
       "template": "{child_name} practiced {skill} and reacted with {emotion} after {outcome}.",
@@ -950,6 +974,7 @@
     {
       "id": "toddler_010",
       "stage_id": "toddler",
+      "category": "Behavior",
       "age_min_years": 1.0,
       "age_max_years": 2.999,
       "template": "{child_name} {verb} when asked to share {toy} at {place}.",
@@ -993,6 +1018,7 @@
     {
       "id": "toddler_011",
       "stage_id": "toddler",
+      "category": "Milestone",
       "age_min_years": 1.0,
       "age_max_years": 2.999,
       "template": "At {routine}, {child_name} wanted {preference}; {caretaker} offered {boundary}.",
@@ -1035,6 +1061,7 @@
     {
       "id": "toddler_012",
       "stage_id": "toddler",
+      "category": "Health",
       "age_min_years": 1.0,
       "age_max_years": 2.999,
       "template": "{child_name} practiced {skill} and reacted with {emotion} after {outcome}.",
@@ -1078,6 +1105,7 @@
     {
       "id": "toddler_013",
       "stage_id": "toddler",
+      "category": "Emotional",
       "age_min_years": 1.0,
       "age_max_years": 2.999,
       "template": "{child_name} {verb} when asked to share {toy} at {place}.",
@@ -1121,6 +1149,7 @@
     {
       "id": "toddler_014",
       "stage_id": "toddler",
+      "category": "Social",
       "age_min_years": 1.0,
       "age_max_years": 2.999,
       "template": "At {routine}, {child_name} wanted {preference}; {caretaker} offered {boundary}.",
@@ -1163,6 +1192,7 @@
     {
       "id": "toddler_015",
       "stage_id": "toddler",
+      "category": "Learning",
       "age_min_years": 1.0,
       "age_max_years": 2.999,
       "template": "{child_name} practiced {skill} and reacted with {emotion} after {outcome}.",
@@ -1206,6 +1236,7 @@
     {
       "id": "toddler_016",
       "stage_id": "toddler",
+      "category": "Behavior",
       "age_min_years": 1.0,
       "age_max_years": 2.999,
       "template": "{child_name} {verb} when asked to share {toy} at {place}.",
@@ -1249,6 +1280,7 @@
     {
       "id": "toddler_017",
       "stage_id": "toddler",
+      "category": "Milestone",
       "age_min_years": 1.0,
       "age_max_years": 2.999,
       "template": "At {routine}, {child_name} wanted {preference}; {caretaker} offered {boundary}.",
@@ -1291,6 +1323,7 @@
     {
       "id": "toddler_018",
       "stage_id": "toddler",
+      "category": "Health",
       "age_min_years": 1.0,
       "age_max_years": 2.999,
       "template": "{child_name} practiced {skill} and reacted with {emotion} after {outcome}.",
@@ -1334,6 +1367,7 @@
     {
       "id": "toddler_019",
       "stage_id": "toddler",
+      "category": "Emotional",
       "age_min_years": 1.0,
       "age_max_years": 2.999,
       "template": "{child_name} {verb} when asked to share {toy} at {place}.",
@@ -1377,6 +1411,7 @@
     {
       "id": "toddler_020",
       "stage_id": "toddler",
+      "category": "Social",
       "age_min_years": 1.0,
       "age_max_years": 2.999,
       "template": "At {routine}, {child_name} wanted {preference}; {caretaker} offered {boundary}.",
@@ -1419,6 +1454,7 @@
     {
       "id": "toddler_021",
       "stage_id": "toddler",
+      "category": "Learning",
       "age_min_years": 1.0,
       "age_max_years": 2.999,
       "template": "{child_name} practiced {skill} and reacted with {emotion} after {outcome}.",
@@ -1462,6 +1498,7 @@
     {
       "id": "toddler_022",
       "stage_id": "toddler",
+      "category": "Behavior",
       "age_min_years": 1.0,
       "age_max_years": 2.999,
       "template": "{child_name} {verb} when asked to share {toy} at {place}.",
@@ -1505,6 +1542,7 @@
     {
       "id": "toddler_023",
       "stage_id": "toddler",
+      "category": "Milestone",
       "age_min_years": 1.0,
       "age_max_years": 2.999,
       "template": "At {routine}, {child_name} wanted {preference}; {caretaker} offered {boundary}.",
@@ -1547,6 +1585,7 @@
     {
       "id": "toddler_024",
       "stage_id": "toddler",
+      "category": "Health",
       "age_min_years": 1.0,
       "age_max_years": 2.999,
       "template": "{child_name} practiced {skill} and reacted with {emotion} after {outcome}.",
@@ -1590,6 +1629,7 @@
     {
       "id": "toddler_025",
       "stage_id": "toddler",
+      "category": "Emotional",
       "age_min_years": 1.0,
       "age_max_years": 2.999,
       "template": "{child_name} {verb} when asked to share {toy} at {place}.",
@@ -1633,6 +1673,7 @@
     {
       "id": "preschool_001",
       "stage_id": "preschool",
+      "category": "Emotional",
       "age_min_years": 3.0,
       "age_max_years": 4.999,
       "template": "At preschool, {child_name} joined {activity} and later described it as {takeaway}.",
@@ -1671,6 +1712,7 @@
     {
       "id": "preschool_002",
       "stage_id": "preschool",
+      "category": "Social",
       "age_min_years": 3.0,
       "age_max_years": 4.999,
       "template": "{child_name} negotiated {issue} with a peer using {strategy}.",
@@ -1708,6 +1750,7 @@
     {
       "id": "preschool_003",
       "stage_id": "preschool",
+      "category": "Learning",
       "age_min_years": 3.0,
       "age_max_years": 4.999,
       "template": "During {outing}, {child_name} noticed {detail} and asked {question}.",
@@ -1749,6 +1792,7 @@
     {
       "id": "preschool_004",
       "stage_id": "preschool",
+      "category": "Behavior",
       "age_min_years": 3.0,
       "age_max_years": 4.999,
       "template": "At preschool, {child_name} joined {activity} and later described it as {takeaway}.",
@@ -1787,6 +1831,7 @@
     {
       "id": "preschool_005",
       "stage_id": "preschool",
+      "category": "Milestone",
       "age_min_years": 3.0,
       "age_max_years": 4.999,
       "template": "{child_name} negotiated {issue} with a peer using {strategy}.",
@@ -1824,6 +1869,7 @@
     {
       "id": "preschool_006",
       "stage_id": "preschool",
+      "category": "Health",
       "age_min_years": 3.0,
       "age_max_years": 4.999,
       "template": "During {outing}, {child_name} noticed {detail} and asked {question}.",
@@ -1865,6 +1911,7 @@
     {
       "id": "preschool_007",
       "stage_id": "preschool",
+      "category": "Emotional",
       "age_min_years": 3.0,
       "age_max_years": 4.999,
       "template": "At preschool, {child_name} joined {activity} and later described it as {takeaway}.",
@@ -1903,6 +1950,7 @@
     {
       "id": "preschool_008",
       "stage_id": "preschool",
+      "category": "Social",
       "age_min_years": 3.0,
       "age_max_years": 4.999,
       "template": "{child_name} negotiated {issue} with a peer using {strategy}.",
@@ -1940,6 +1988,7 @@
     {
       "id": "preschool_009",
       "stage_id": "preschool",
+      "category": "Learning",
       "age_min_years": 3.0,
       "age_max_years": 4.999,
       "template": "During {outing}, {child_name} noticed {detail} and asked {question}.",
@@ -1981,6 +2030,7 @@
     {
       "id": "preschool_010",
       "stage_id": "preschool",
+      "category": "Behavior",
       "age_min_years": 3.0,
       "age_max_years": 4.999,
       "template": "At preschool, {child_name} joined {activity} and later described it as {takeaway}.",
@@ -2019,6 +2069,7 @@
     {
       "id": "preschool_011",
       "stage_id": "preschool",
+      "category": "Milestone",
       "age_min_years": 3.0,
       "age_max_years": 4.999,
       "template": "{child_name} negotiated {issue} with a peer using {strategy}.",
@@ -2056,6 +2107,7 @@
     {
       "id": "preschool_012",
       "stage_id": "preschool",
+      "category": "Health",
       "age_min_years": 3.0,
       "age_max_years": 4.999,
       "template": "During {outing}, {child_name} noticed {detail} and asked {question}.",
@@ -2097,6 +2149,7 @@
     {
       "id": "preschool_013",
       "stage_id": "preschool",
+      "category": "Emotional",
       "age_min_years": 3.0,
       "age_max_years": 4.999,
       "template": "At preschool, {child_name} joined {activity} and later described it as {takeaway}.",
@@ -2135,6 +2188,7 @@
     {
       "id": "preschool_014",
       "stage_id": "preschool",
+      "category": "Social",
       "age_min_years": 3.0,
       "age_max_years": 4.999,
       "template": "{child_name} negotiated {issue} with a peer using {strategy}.",
@@ -2172,6 +2226,7 @@
     {
       "id": "preschool_015",
       "stage_id": "preschool",
+      "category": "Learning",
       "age_min_years": 3.0,
       "age_max_years": 4.999,
       "template": "During {outing}, {child_name} noticed {detail} and asked {question}.",
@@ -2213,6 +2268,7 @@
     {
       "id": "preschool_016",
       "stage_id": "preschool",
+      "category": "Behavior",
       "age_min_years": 3.0,
       "age_max_years": 4.999,
       "template": "At preschool, {child_name} joined {activity} and later described it as {takeaway}.",
@@ -2251,6 +2307,7 @@
     {
       "id": "preschool_017",
       "stage_id": "preschool",
+      "category": "Milestone",
       "age_min_years": 3.0,
       "age_max_years": 4.999,
       "template": "{child_name} negotiated {issue} with a peer using {strategy}.",
@@ -2288,6 +2345,7 @@
     {
       "id": "preschool_018",
       "stage_id": "preschool",
+      "category": "Health",
       "age_min_years": 3.0,
       "age_max_years": 4.999,
       "template": "During {outing}, {child_name} noticed {detail} and asked {question}.",
@@ -2329,6 +2387,7 @@
     {
       "id": "preschool_019",
       "stage_id": "preschool",
+      "category": "Emotional",
       "age_min_years": 3.0,
       "age_max_years": 4.999,
       "template": "At preschool, {child_name} joined {activity} and later described it as {takeaway}.",
@@ -2367,6 +2426,7 @@
     {
       "id": "preschool_020",
       "stage_id": "preschool",
+      "category": "Social",
       "age_min_years": 3.0,
       "age_max_years": 4.999,
       "template": "{child_name} negotiated {issue} with a peer using {strategy}.",
@@ -2404,6 +2464,7 @@
     {
       "id": "preschool_021",
       "stage_id": "preschool",
+      "category": "Learning",
       "age_min_years": 3.0,
       "age_max_years": 4.999,
       "template": "During {outing}, {child_name} noticed {detail} and asked {question}.",
@@ -2445,6 +2506,7 @@
     {
       "id": "preschool_022",
       "stage_id": "preschool",
+      "category": "Behavior",
       "age_min_years": 3.0,
       "age_max_years": 4.999,
       "template": "At preschool, {child_name} joined {activity} and later described it as {takeaway}.",
@@ -2483,6 +2545,7 @@
     {
       "id": "preschool_023",
       "stage_id": "preschool",
+      "category": "Milestone",
       "age_min_years": 3.0,
       "age_max_years": 4.999,
       "template": "{child_name} negotiated {issue} with a peer using {strategy}.",
@@ -2520,6 +2583,7 @@
     {
       "id": "preschool_024",
       "stage_id": "preschool",
+      "category": "Health",
       "age_min_years": 3.0,
       "age_max_years": 4.999,
       "template": "During {outing}, {child_name} noticed {detail} and asked {question}.",
@@ -2561,6 +2625,7 @@
     {
       "id": "preschool_025",
       "stage_id": "preschool",
+      "category": "Emotional",
       "age_min_years": 3.0,
       "age_max_years": 4.999,
       "template": "At preschool, {child_name} joined {activity} and later described it as {takeaway}.",
@@ -2599,6 +2664,7 @@
     {
       "id": "early_school_001",
       "stage_id": "early_school",
+      "category": "Emotional",
       "age_min_years": 5.0,
       "age_max_years": 7.999,
       "template": "In class, {child_name} {class_behavior} during {subject}.",
@@ -2637,6 +2703,7 @@
     {
       "id": "early_school_002",
       "stage_id": "early_school",
+      "category": "Social",
       "age_min_years": 5.0,
       "age_max_years": 7.999,
       "template": "At recess, {child_name} tried {play_choice} and ended the block feeling {mood}.",
@@ -2675,6 +2742,7 @@
     {
       "id": "early_school_003",
       "stage_id": "early_school",
+      "category": "Learning",
       "age_min_years": 5.0,
       "age_max_years": 7.999,
       "template": "{child_name} brought home {artifact}; {caretaker} noticed {follow_up}.",
@@ -2711,6 +2779,7 @@
     {
       "id": "early_school_004",
       "stage_id": "early_school",
+      "category": "Behavior",
       "age_min_years": 5.0,
       "age_max_years": 7.999,
       "template": "In class, {child_name} {class_behavior} during {subject}.",
@@ -2749,6 +2818,7 @@
     {
       "id": "early_school_005",
       "stage_id": "early_school",
+      "category": "Milestone",
       "age_min_years": 5.0,
       "age_max_years": 7.999,
       "template": "At recess, {child_name} tried {play_choice} and ended the block feeling {mood}.",
@@ -2787,6 +2857,7 @@
     {
       "id": "early_school_006",
       "stage_id": "early_school",
+      "category": "Health",
       "age_min_years": 5.0,
       "age_max_years": 7.999,
       "template": "{child_name} brought home {artifact}; {caretaker} noticed {follow_up}.",
@@ -2823,6 +2894,7 @@
     {
       "id": "early_school_007",
       "stage_id": "early_school",
+      "category": "Emotional",
       "age_min_years": 5.0,
       "age_max_years": 7.999,
       "template": "In class, {child_name} {class_behavior} during {subject}.",
@@ -2861,6 +2933,7 @@
     {
       "id": "early_school_008",
       "stage_id": "early_school",
+      "category": "Social",
       "age_min_years": 5.0,
       "age_max_years": 7.999,
       "template": "At recess, {child_name} tried {play_choice} and ended the block feeling {mood}.",
@@ -2899,6 +2972,7 @@
     {
       "id": "early_school_009",
       "stage_id": "early_school",
+      "category": "Learning",
       "age_min_years": 5.0,
       "age_max_years": 7.999,
       "template": "{child_name} brought home {artifact}; {caretaker} noticed {follow_up}.",
@@ -2935,6 +3009,7 @@
     {
       "id": "early_school_010",
       "stage_id": "early_school",
+      "category": "Behavior",
       "age_min_years": 5.0,
       "age_max_years": 7.999,
       "template": "In class, {child_name} {class_behavior} during {subject}.",
@@ -2973,6 +3048,7 @@
     {
       "id": "early_school_011",
       "stage_id": "early_school",
+      "category": "Milestone",
       "age_min_years": 5.0,
       "age_max_years": 7.999,
       "template": "At recess, {child_name} tried {play_choice} and ended the block feeling {mood}.",
@@ -3011,6 +3087,7 @@
     {
       "id": "early_school_012",
       "stage_id": "early_school",
+      "category": "Health",
       "age_min_years": 5.0,
       "age_max_years": 7.999,
       "template": "{child_name} brought home {artifact}; {caretaker} noticed {follow_up}.",
@@ -3047,6 +3124,7 @@
     {
       "id": "early_school_013",
       "stage_id": "early_school",
+      "category": "Emotional",
       "age_min_years": 5.0,
       "age_max_years": 7.999,
       "template": "In class, {child_name} {class_behavior} during {subject}.",
@@ -3085,6 +3163,7 @@
     {
       "id": "early_school_014",
       "stage_id": "early_school",
+      "category": "Social",
       "age_min_years": 5.0,
       "age_max_years": 7.999,
       "template": "At recess, {child_name} tried {play_choice} and ended the block feeling {mood}.",
@@ -3123,6 +3202,7 @@
     {
       "id": "early_school_015",
       "stage_id": "early_school",
+      "category": "Learning",
       "age_min_years": 5.0,
       "age_max_years": 7.999,
       "template": "{child_name} brought home {artifact}; {caretaker} noticed {follow_up}.",
@@ -3159,6 +3239,7 @@
     {
       "id": "early_school_016",
       "stage_id": "early_school",
+      "category": "Behavior",
       "age_min_years": 5.0,
       "age_max_years": 7.999,
       "template": "In class, {child_name} {class_behavior} during {subject}.",
@@ -3197,6 +3278,7 @@
     {
       "id": "early_school_017",
       "stage_id": "early_school",
+      "category": "Milestone",
       "age_min_years": 5.0,
       "age_max_years": 7.999,
       "template": "At recess, {child_name} tried {play_choice} and ended the block feeling {mood}.",
@@ -3235,6 +3317,7 @@
     {
       "id": "early_school_018",
       "stage_id": "early_school",
+      "category": "Health",
       "age_min_years": 5.0,
       "age_max_years": 7.999,
       "template": "{child_name} brought home {artifact}; {caretaker} noticed {follow_up}.",
@@ -3271,6 +3354,7 @@
     {
       "id": "early_school_019",
       "stage_id": "early_school",
+      "category": "Emotional",
       "age_min_years": 5.0,
       "age_max_years": 7.999,
       "template": "In class, {child_name} {class_behavior} during {subject}.",
@@ -3309,6 +3393,7 @@
     {
       "id": "early_school_020",
       "stage_id": "early_school",
+      "category": "Social",
       "age_min_years": 5.0,
       "age_max_years": 7.999,
       "template": "At recess, {child_name} tried {play_choice} and ended the block feeling {mood}.",
@@ -3347,6 +3432,7 @@
     {
       "id": "early_school_021",
       "stage_id": "early_school",
+      "category": "Learning",
       "age_min_years": 5.0,
       "age_max_years": 7.999,
       "template": "{child_name} brought home {artifact}; {caretaker} noticed {follow_up}.",
@@ -3383,6 +3469,7 @@
     {
       "id": "early_school_022",
       "stage_id": "early_school",
+      "category": "Behavior",
       "age_min_years": 5.0,
       "age_max_years": 7.999,
       "template": "In class, {child_name} {class_behavior} during {subject}.",
@@ -3421,6 +3508,7 @@
     {
       "id": "early_school_023",
       "stage_id": "early_school",
+      "category": "Milestone",
       "age_min_years": 5.0,
       "age_max_years": 7.999,
       "template": "At recess, {child_name} tried {play_choice} and ended the block feeling {mood}.",
@@ -3459,6 +3547,7 @@
     {
       "id": "early_school_024",
       "stage_id": "early_school",
+      "category": "Health",
       "age_min_years": 5.0,
       "age_max_years": 7.999,
       "template": "{child_name} brought home {artifact}; {caretaker} noticed {follow_up}.",
@@ -3495,6 +3584,7 @@
     {
       "id": "early_school_025",
       "stage_id": "early_school",
+      "category": "Emotional",
       "age_min_years": 5.0,
       "age_max_years": 7.999,
       "template": "In class, {child_name} {class_behavior} during {subject}.",
@@ -3533,6 +3623,7 @@
     {
       "id": "early_school_026",
       "stage_id": "early_school",
+      "category": "Social",
       "age_min_years": 5.0,
       "age_max_years": 7.999,
       "template": "At recess, {child_name} tried {play_choice} and ended the block feeling {mood}.",
@@ -3571,6 +3662,7 @@
     {
       "id": "early_school_027",
       "stage_id": "early_school",
+      "category": "Learning",
       "age_min_years": 5.0,
       "age_max_years": 7.999,
       "template": "{child_name} brought home {artifact}; {caretaker} noticed {follow_up}.",
@@ -3607,6 +3699,7 @@
     {
       "id": "early_school_028",
       "stage_id": "early_school",
+      "category": "Behavior",
       "age_min_years": 5.0,
       "age_max_years": 7.999,
       "template": "In class, {child_name} {class_behavior} during {subject}.",
@@ -3645,6 +3738,7 @@
     {
       "id": "early_school_029",
       "stage_id": "early_school",
+      "category": "Milestone",
       "age_min_years": 5.0,
       "age_max_years": 7.999,
       "template": "At recess, {child_name} tried {play_choice} and ended the block feeling {mood}.",
@@ -3683,6 +3777,7 @@
     {
       "id": "early_school_030",
       "stage_id": "early_school",
+      "category": "Health",
       "age_min_years": 5.0,
       "age_max_years": 7.999,
       "template": "{child_name} brought home {artifact}; {caretaker} noticed {follow_up}.",
@@ -3719,6 +3814,7 @@
     {
       "id": "early_school_031",
       "stage_id": "early_school",
+      "category": "Emotional",
       "age_min_years": 5.0,
       "age_max_years": 7.999,
       "template": "In class, {child_name} {class_behavior} during {subject}.",
@@ -3757,6 +3853,7 @@
     {
       "id": "early_school_032",
       "stage_id": "early_school",
+      "category": "Social",
       "age_min_years": 5.0,
       "age_max_years": 7.999,
       "template": "At recess, {child_name} tried {play_choice} and ended the block feeling {mood}.",
@@ -3795,6 +3892,7 @@
     {
       "id": "early_school_033",
       "stage_id": "early_school",
+      "category": "Learning",
       "age_min_years": 5.0,
       "age_max_years": 7.999,
       "template": "{child_name} brought home {artifact}; {caretaker} noticed {follow_up}.",
@@ -3831,6 +3929,7 @@
     {
       "id": "early_school_034",
       "stage_id": "early_school",
+      "category": "Behavior",
       "age_min_years": 5.0,
       "age_max_years": 7.999,
       "template": "In class, {child_name} {class_behavior} during {subject}.",
@@ -3869,6 +3968,7 @@
     {
       "id": "early_school_035",
       "stage_id": "early_school",
+      "category": "Milestone",
       "age_min_years": 5.0,
       "age_max_years": 7.999,
       "template": "At recess, {child_name} tried {play_choice} and ended the block feeling {mood}.",
@@ -3907,6 +4007,7 @@
     {
       "id": "middle_childhood_001",
       "stage_id": "middle_childhood",
+      "category": "Emotional",
       "age_min_years": 8.0,
       "age_max_years": 11.999,
       "template": "{child_name} navigated {social_test} with teammates and reflected {reflection}.",
@@ -3944,6 +4045,7 @@
     {
       "id": "middle_childhood_002",
       "stage_id": "middle_childhood",
+      "category": "Social",
       "age_min_years": 8.0,
       "age_max_years": 11.999,
       "template": "Homework night: {child_name} hit friction on {topic}; {caretaker} coached with {approach}.",
@@ -3982,6 +4084,7 @@
     {
       "id": "middle_childhood_003",
       "stage_id": "middle_childhood",
+      "category": "Learning",
       "age_min_years": 8.0,
       "age_max_years": 11.999,
       "template": "{child_name} experimented with {hobby} and compared themselves to {comparison}.",
@@ -4020,6 +4123,7 @@
     {
       "id": "middle_childhood_004",
       "stage_id": "middle_childhood",
+      "category": "Behavior",
       "age_min_years": 8.0,
       "age_max_years": 11.999,
       "template": "{child_name} navigated {social_test} with teammates and reflected {reflection}.",
@@ -4057,6 +4161,7 @@
     {
       "id": "middle_childhood_005",
       "stage_id": "middle_childhood",
+      "category": "Milestone",
       "age_min_years": 8.0,
       "age_max_years": 11.999,
       "template": "Homework night: {child_name} hit friction on {topic}; {caretaker} coached with {approach}.",
@@ -4095,6 +4200,7 @@
     {
       "id": "middle_childhood_006",
       "stage_id": "middle_childhood",
+      "category": "Health",
       "age_min_years": 8.0,
       "age_max_years": 11.999,
       "template": "{child_name} experimented with {hobby} and compared themselves to {comparison}.",
@@ -4133,6 +4239,7 @@
     {
       "id": "middle_childhood_007",
       "stage_id": "middle_childhood",
+      "category": "Emotional",
       "age_min_years": 8.0,
       "age_max_years": 11.999,
       "template": "{child_name} navigated {social_test} with teammates and reflected {reflection}.",
@@ -4170,6 +4277,7 @@
     {
       "id": "middle_childhood_008",
       "stage_id": "middle_childhood",
+      "category": "Social",
       "age_min_years": 8.0,
       "age_max_years": 11.999,
       "template": "Homework night: {child_name} hit friction on {topic}; {caretaker} coached with {approach}.",
@@ -4208,6 +4316,7 @@
     {
       "id": "middle_childhood_009",
       "stage_id": "middle_childhood",
+      "category": "Learning",
       "age_min_years": 8.0,
       "age_max_years": 11.999,
       "template": "{child_name} experimented with {hobby} and compared themselves to {comparison}.",
@@ -4246,6 +4355,7 @@
     {
       "id": "middle_childhood_010",
       "stage_id": "middle_childhood",
+      "category": "Behavior",
       "age_min_years": 8.0,
       "age_max_years": 11.999,
       "template": "{child_name} navigated {social_test} with teammates and reflected {reflection}.",
@@ -4283,6 +4393,7 @@
     {
       "id": "middle_childhood_011",
       "stage_id": "middle_childhood",
+      "category": "Milestone",
       "age_min_years": 8.0,
       "age_max_years": 11.999,
       "template": "Homework night: {child_name} hit friction on {topic}; {caretaker} coached with {approach}.",
@@ -4321,6 +4432,7 @@
     {
       "id": "middle_childhood_012",
       "stage_id": "middle_childhood",
+      "category": "Health",
       "age_min_years": 8.0,
       "age_max_years": 11.999,
       "template": "{child_name} experimented with {hobby} and compared themselves to {comparison}.",
@@ -4359,6 +4471,7 @@
     {
       "id": "middle_childhood_013",
       "stage_id": "middle_childhood",
+      "category": "Emotional",
       "age_min_years": 8.0,
       "age_max_years": 11.999,
       "template": "{child_name} navigated {social_test} with teammates and reflected {reflection}.",
@@ -4396,6 +4509,7 @@
     {
       "id": "middle_childhood_014",
       "stage_id": "middle_childhood",
+      "category": "Social",
       "age_min_years": 8.0,
       "age_max_years": 11.999,
       "template": "Homework night: {child_name} hit friction on {topic}; {caretaker} coached with {approach}.",
@@ -4434,6 +4548,7 @@
     {
       "id": "middle_childhood_015",
       "stage_id": "middle_childhood",
+      "category": "Learning",
       "age_min_years": 8.0,
       "age_max_years": 11.999,
       "template": "{child_name} experimented with {hobby} and compared themselves to {comparison}.",
@@ -4472,6 +4587,7 @@
     {
       "id": "middle_childhood_016",
       "stage_id": "middle_childhood",
+      "category": "Behavior",
       "age_min_years": 8.0,
       "age_max_years": 11.999,
       "template": "{child_name} navigated {social_test} with teammates and reflected {reflection}.",
@@ -4509,6 +4625,7 @@
     {
       "id": "middle_childhood_017",
       "stage_id": "middle_childhood",
+      "category": "Milestone",
       "age_min_years": 8.0,
       "age_max_years": 11.999,
       "template": "Homework night: {child_name} hit friction on {topic}; {caretaker} coached with {approach}.",
@@ -4547,6 +4664,7 @@
     {
       "id": "middle_childhood_018",
       "stage_id": "middle_childhood",
+      "category": "Health",
       "age_min_years": 8.0,
       "age_max_years": 11.999,
       "template": "{child_name} experimented with {hobby} and compared themselves to {comparison}.",
@@ -4585,6 +4703,7 @@
     {
       "id": "middle_childhood_019",
       "stage_id": "middle_childhood",
+      "category": "Emotional",
       "age_min_years": 8.0,
       "age_max_years": 11.999,
       "template": "{child_name} navigated {social_test} with teammates and reflected {reflection}.",
@@ -4622,6 +4741,7 @@
     {
       "id": "middle_childhood_020",
       "stage_id": "middle_childhood",
+      "category": "Social",
       "age_min_years": 8.0,
       "age_max_years": 11.999,
       "template": "Homework night: {child_name} hit friction on {topic}; {caretaker} coached with {approach}.",
@@ -4660,6 +4780,7 @@
     {
       "id": "middle_childhood_021",
       "stage_id": "middle_childhood",
+      "category": "Learning",
       "age_min_years": 8.0,
       "age_max_years": 11.999,
       "template": "{child_name} experimented with {hobby} and compared themselves to {comparison}.",
@@ -4698,6 +4819,7 @@
     {
       "id": "middle_childhood_022",
       "stage_id": "middle_childhood",
+      "category": "Behavior",
       "age_min_years": 8.0,
       "age_max_years": 11.999,
       "template": "{child_name} navigated {social_test} with teammates and reflected {reflection}.",
@@ -4735,6 +4857,7 @@
     {
       "id": "middle_childhood_023",
       "stage_id": "middle_childhood",
+      "category": "Milestone",
       "age_min_years": 8.0,
       "age_max_years": 11.999,
       "template": "Homework night: {child_name} hit friction on {topic}; {caretaker} coached with {approach}.",
@@ -4773,6 +4896,7 @@
     {
       "id": "middle_childhood_024",
       "stage_id": "middle_childhood",
+      "category": "Health",
       "age_min_years": 8.0,
       "age_max_years": 11.999,
       "template": "{child_name} experimented with {hobby} and compared themselves to {comparison}.",
@@ -4811,6 +4935,7 @@
     {
       "id": "middle_childhood_025",
       "stage_id": "middle_childhood",
+      "category": "Emotional",
       "age_min_years": 8.0,
       "age_max_years": 11.999,
       "template": "{child_name} navigated {social_test} with teammates and reflected {reflection}.",
@@ -4848,6 +4973,7 @@
     {
       "id": "middle_childhood_026",
       "stage_id": "middle_childhood",
+      "category": "Social",
       "age_min_years": 8.0,
       "age_max_years": 11.999,
       "template": "Homework night: {child_name} hit friction on {topic}; {caretaker} coached with {approach}.",
@@ -4886,6 +5012,7 @@
     {
       "id": "middle_childhood_027",
       "stage_id": "middle_childhood",
+      "category": "Learning",
       "age_min_years": 8.0,
       "age_max_years": 11.999,
       "template": "{child_name} experimented with {hobby} and compared themselves to {comparison}.",
@@ -4924,6 +5051,7 @@
     {
       "id": "middle_childhood_028",
       "stage_id": "middle_childhood",
+      "category": "Behavior",
       "age_min_years": 8.0,
       "age_max_years": 11.999,
       "template": "{child_name} navigated {social_test} with teammates and reflected {reflection}.",
@@ -4961,6 +5089,7 @@
     {
       "id": "middle_childhood_029",
       "stage_id": "middle_childhood",
+      "category": "Milestone",
       "age_min_years": 8.0,
       "age_max_years": 11.999,
       "template": "Homework night: {child_name} hit friction on {topic}; {caretaker} coached with {approach}.",
@@ -4999,6 +5128,7 @@
     {
       "id": "middle_childhood_030",
       "stage_id": "middle_childhood",
+      "category": "Health",
       "age_min_years": 8.0,
       "age_max_years": 11.999,
       "template": "{child_name} experimented with {hobby} and compared themselves to {comparison}.",
@@ -5037,6 +5167,7 @@
     {
       "id": "middle_childhood_031",
       "stage_id": "middle_childhood",
+      "category": "Emotional",
       "age_min_years": 8.0,
       "age_max_years": 11.999,
       "template": "{child_name} navigated {social_test} with teammates and reflected {reflection}.",
@@ -5074,6 +5205,7 @@
     {
       "id": "middle_childhood_032",
       "stage_id": "middle_childhood",
+      "category": "Social",
       "age_min_years": 8.0,
       "age_max_years": 11.999,
       "template": "Homework night: {child_name} hit friction on {topic}; {caretaker} coached with {approach}.",
@@ -5112,6 +5244,7 @@
     {
       "id": "middle_childhood_033",
       "stage_id": "middle_childhood",
+      "category": "Learning",
       "age_min_years": 8.0,
       "age_max_years": 11.999,
       "template": "{child_name} experimented with {hobby} and compared themselves to {comparison}.",
@@ -5150,6 +5283,7 @@
     {
       "id": "middle_childhood_034",
       "stage_id": "middle_childhood",
+      "category": "Behavior",
       "age_min_years": 8.0,
       "age_max_years": 11.999,
       "template": "{child_name} navigated {social_test} with teammates and reflected {reflection}.",
@@ -5187,6 +5321,7 @@
     {
       "id": "middle_childhood_035",
       "stage_id": "middle_childhood",
+      "category": "Milestone",
       "age_min_years": 8.0,
       "age_max_years": 11.999,
       "template": "Homework night: {child_name} hit friction on {topic}; {caretaker} coached with {approach}.",
@@ -5225,6 +5360,7 @@
     {
       "id": "middle_childhood_036",
       "stage_id": "middle_childhood",
+      "category": "Health",
       "age_min_years": 8.0,
       "age_max_years": 11.999,
       "template": "{child_name} experimented with {hobby} and compared themselves to {comparison}.",
@@ -5263,6 +5399,7 @@
     {
       "id": "middle_childhood_037",
       "stage_id": "middle_childhood",
+      "category": "Emotional",
       "age_min_years": 8.0,
       "age_max_years": 11.999,
       "template": "{child_name} navigated {social_test} with teammates and reflected {reflection}.",
@@ -5300,6 +5437,7 @@
     {
       "id": "middle_childhood_038",
       "stage_id": "middle_childhood",
+      "category": "Social",
       "age_min_years": 8.0,
       "age_max_years": 11.999,
       "template": "Homework night: {child_name} hit friction on {topic}; {caretaker} coached with {approach}.",
@@ -5338,6 +5476,7 @@
     {
       "id": "adolescence_001",
       "stage_id": "adolescence",
+      "category": "Emotional",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "{child_name} debated {topic} with {tone}; boundaries landed as {result}.",
@@ -5382,6 +5521,7 @@
     {
       "id": "adolescence_002",
       "stage_id": "adolescence",
+      "category": "Social",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "After {stress}, {child_name} sought {coping} instead of {avoidance}.",
@@ -5426,6 +5566,7 @@
     {
       "id": "adolescence_003",
       "stage_id": "adolescence",
+      "category": "Learning",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "{child_name} pursued {goal} and needed {support_type} from {caretaker}.",
@@ -5464,6 +5605,7 @@
     {
       "id": "adolescence_004",
       "stage_id": "adolescence",
+      "category": "Behavior",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "{child_name} debated {topic} with {tone}; boundaries landed as {result}.",
@@ -5508,6 +5650,7 @@
     {
       "id": "adolescence_005",
       "stage_id": "adolescence",
+      "category": "Milestone",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "After {stress}, {child_name} sought {coping} instead of {avoidance}.",
@@ -5552,6 +5695,7 @@
     {
       "id": "adolescence_006",
       "stage_id": "adolescence",
+      "category": "Health",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "{child_name} pursued {goal} and needed {support_type} from {caretaker}.",
@@ -5590,6 +5734,7 @@
     {
       "id": "adolescence_007",
       "stage_id": "adolescence",
+      "category": "Emotional",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "{child_name} debated {topic} with {tone}; boundaries landed as {result}.",
@@ -5634,6 +5779,7 @@
     {
       "id": "adolescence_008",
       "stage_id": "adolescence",
+      "category": "Social",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "After {stress}, {child_name} sought {coping} instead of {avoidance}.",
@@ -5678,6 +5824,7 @@
     {
       "id": "adolescence_009",
       "stage_id": "adolescence",
+      "category": "Learning",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "{child_name} pursued {goal} and needed {support_type} from {caretaker}.",
@@ -5716,6 +5863,7 @@
     {
       "id": "adolescence_010",
       "stage_id": "adolescence",
+      "category": "Behavior",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "{child_name} debated {topic} with {tone}; boundaries landed as {result}.",
@@ -5760,6 +5908,7 @@
     {
       "id": "adolescence_011",
       "stage_id": "adolescence",
+      "category": "Milestone",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "After {stress}, {child_name} sought {coping} instead of {avoidance}.",
@@ -5804,6 +5953,7 @@
     {
       "id": "adolescence_012",
       "stage_id": "adolescence",
+      "category": "Health",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "{child_name} pursued {goal} and needed {support_type} from {caretaker}.",
@@ -5842,6 +5992,7 @@
     {
       "id": "adolescence_013",
       "stage_id": "adolescence",
+      "category": "Emotional",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "{child_name} debated {topic} with {tone}; boundaries landed as {result}.",
@@ -5886,6 +6037,7 @@
     {
       "id": "adolescence_014",
       "stage_id": "adolescence",
+      "category": "Social",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "After {stress}, {child_name} sought {coping} instead of {avoidance}.",
@@ -5930,6 +6082,7 @@
     {
       "id": "adolescence_015",
       "stage_id": "adolescence",
+      "category": "Learning",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "{child_name} pursued {goal} and needed {support_type} from {caretaker}.",
@@ -5968,6 +6121,7 @@
     {
       "id": "adolescence_016",
       "stage_id": "adolescence",
+      "category": "Behavior",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "{child_name} debated {topic} with {tone}; boundaries landed as {result}.",
@@ -6012,6 +6166,7 @@
     {
       "id": "adolescence_017",
       "stage_id": "adolescence",
+      "category": "Milestone",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "After {stress}, {child_name} sought {coping} instead of {avoidance}.",
@@ -6056,6 +6211,7 @@
     {
       "id": "adolescence_018",
       "stage_id": "adolescence",
+      "category": "Health",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "{child_name} pursued {goal} and needed {support_type} from {caretaker}.",
@@ -6094,6 +6250,7 @@
     {
       "id": "adolescence_019",
       "stage_id": "adolescence",
+      "category": "Emotional",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "{child_name} debated {topic} with {tone}; boundaries landed as {result}.",
@@ -6138,6 +6295,7 @@
     {
       "id": "adolescence_020",
       "stage_id": "adolescence",
+      "category": "Social",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "After {stress}, {child_name} sought {coping} instead of {avoidance}.",
@@ -6182,6 +6340,7 @@
     {
       "id": "adolescence_021",
       "stage_id": "adolescence",
+      "category": "Learning",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "{child_name} pursued {goal} and needed {support_type} from {caretaker}.",
@@ -6220,6 +6379,7 @@
     {
       "id": "adolescence_022",
       "stage_id": "adolescence",
+      "category": "Behavior",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "{child_name} debated {topic} with {tone}; boundaries landed as {result}.",
@@ -6264,6 +6424,7 @@
     {
       "id": "adolescence_023",
       "stage_id": "adolescence",
+      "category": "Milestone",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "After {stress}, {child_name} sought {coping} instead of {avoidance}.",
@@ -6308,6 +6469,7 @@
     {
       "id": "adolescence_024",
       "stage_id": "adolescence",
+      "category": "Health",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "{child_name} pursued {goal} and needed {support_type} from {caretaker}.",
@@ -6346,6 +6508,7 @@
     {
       "id": "adolescence_025",
       "stage_id": "adolescence",
+      "category": "Emotional",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "{child_name} debated {topic} with {tone}; boundaries landed as {result}.",
@@ -6390,6 +6553,7 @@
     {
       "id": "adolescence_026",
       "stage_id": "adolescence",
+      "category": "Social",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "After {stress}, {child_name} sought {coping} instead of {avoidance}.",
@@ -6434,6 +6598,7 @@
     {
       "id": "adolescence_027",
       "stage_id": "adolescence",
+      "category": "Learning",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "{child_name} pursued {goal} and needed {support_type} from {caretaker}.",
@@ -6472,6 +6637,7 @@
     {
       "id": "adolescence_028",
       "stage_id": "adolescence",
+      "category": "Behavior",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "{child_name} debated {topic} with {tone}; boundaries landed as {result}.",
@@ -6516,6 +6682,7 @@
     {
       "id": "adolescence_029",
       "stage_id": "adolescence",
+      "category": "Milestone",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "After {stress}, {child_name} sought {coping} instead of {avoidance}.",
@@ -6560,6 +6727,7 @@
     {
       "id": "adolescence_030",
       "stage_id": "adolescence",
+      "category": "Health",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "{child_name} pursued {goal} and needed {support_type} from {caretaker}.",
@@ -6598,6 +6766,7 @@
     {
       "id": "adolescence_031",
       "stage_id": "adolescence",
+      "category": "Emotional",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "{child_name} debated {topic} with {tone}; boundaries landed as {result}.",
@@ -6642,6 +6811,7 @@
     {
       "id": "adolescence_032",
       "stage_id": "adolescence",
+      "category": "Social",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "After {stress}, {child_name} sought {coping} instead of {avoidance}.",
@@ -6686,6 +6856,7 @@
     {
       "id": "adolescence_033",
       "stage_id": "adolescence",
+      "category": "Learning",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "{child_name} pursued {goal} and needed {support_type} from {caretaker}.",
@@ -6724,6 +6895,7 @@
     {
       "id": "adolescence_034",
       "stage_id": "adolescence",
+      "category": "Behavior",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "{child_name} debated {topic} with {tone}; boundaries landed as {result}.",
@@ -6768,6 +6940,7 @@
     {
       "id": "adolescence_035",
       "stage_id": "adolescence",
+      "category": "Milestone",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "After {stress}, {child_name} sought {coping} instead of {avoidance}.",
@@ -6812,6 +6985,7 @@
     {
       "id": "adolescence_036",
       "stage_id": "adolescence",
+      "category": "Health",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "{child_name} pursued {goal} and needed {support_type} from {caretaker}.",
@@ -6850,6 +7024,7 @@
     {
       "id": "adolescence_037",
       "stage_id": "adolescence",
+      "category": "Emotional",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "{child_name} debated {topic} with {tone}; boundaries landed as {result}.",
@@ -6894,6 +7069,7 @@
     {
       "id": "adolescence_038",
       "stage_id": "adolescence",
+      "category": "Social",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "After {stress}, {child_name} sought {coping} instead of {avoidance}.",
@@ -6938,6 +7114,7 @@
     {
       "id": "adolescence_039",
       "stage_id": "adolescence",
+      "category": "Learning",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "{child_name} pursued {goal} and needed {support_type} from {caretaker}.",
@@ -6976,6 +7153,7 @@
     {
       "id": "adolescence_040",
       "stage_id": "adolescence",
+      "category": "Behavior",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "{child_name} debated {topic} with {tone}; boundaries landed as {result}.",
@@ -7020,6 +7198,7 @@
     {
       "id": "adolescence_041",
       "stage_id": "adolescence",
+      "category": "Milestone",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "After {stress}, {child_name} sought {coping} instead of {avoidance}.",
@@ -7064,6 +7243,7 @@
     {
       "id": "adolescence_042",
       "stage_id": "adolescence",
+      "category": "Health",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "{child_name} pursued {goal} and needed {support_type} from {caretaker}.",
@@ -7102,6 +7282,7 @@
     {
       "id": "adolescence_043",
       "stage_id": "adolescence",
+      "category": "Emotional",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "{child_name} debated {topic} with {tone}; boundaries landed as {result}.",
@@ -7146,6 +7327,7 @@
     {
       "id": "adolescence_044",
       "stage_id": "adolescence",
+      "category": "Social",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "After {stress}, {child_name} sought {coping} instead of {avoidance}.",
@@ -7190,6 +7372,7 @@
     {
       "id": "adolescence_045",
       "stage_id": "adolescence",
+      "category": "Learning",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "{child_name} pursued {goal} and needed {support_type} from {caretaker}.",
@@ -7228,6 +7411,7 @@
     {
       "id": "adolescence_046",
       "stage_id": "adolescence",
+      "category": "Behavior",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "{child_name} debated {topic} with {tone}; boundaries landed as {result}.",
@@ -7272,6 +7456,7 @@
     {
       "id": "adolescence_047",
       "stage_id": "adolescence",
+      "category": "Milestone",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "After {stress}, {child_name} sought {coping} instead of {avoidance}.",
@@ -7316,6 +7501,7 @@
     {
       "id": "adolescence_048",
       "stage_id": "adolescence",
+      "category": "Health",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "{child_name} pursued {goal} and needed {support_type} from {caretaker}.",
@@ -7354,6 +7540,7 @@
     {
       "id": "adolescence_049",
       "stage_id": "adolescence",
+      "category": "Emotional",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "{child_name} debated {topic} with {tone}; boundaries landed as {result}.",
@@ -7398,6 +7585,7 @@
     {
       "id": "adolescence_050",
       "stage_id": "adolescence",
+      "category": "Social",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "After {stress}, {child_name} sought {coping} instead of {avoidance}.",
@@ -7442,6 +7630,7 @@
     {
       "id": "adolescence_051",
       "stage_id": "adolescence",
+      "category": "Learning",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "{child_name} pursued {goal} and needed {support_type} from {caretaker}.",
@@ -7480,6 +7669,7 @@
     {
       "id": "adolescence_052",
       "stage_id": "adolescence",
+      "category": "Behavior",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "{child_name} debated {topic} with {tone}; boundaries landed as {result}.",
@@ -7524,6 +7714,7 @@
     {
       "id": "adolescence_053",
       "stage_id": "adolescence",
+      "category": "Milestone",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "After {stress}, {child_name} sought {coping} instead of {avoidance}.",
@@ -7568,6 +7759,7 @@
     {
       "id": "adolescence_054",
       "stage_id": "adolescence",
+      "category": "Health",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "{child_name} pursued {goal} and needed {support_type} from {caretaker}.",
@@ -7606,6 +7798,7 @@
     {
       "id": "adolescence_055",
       "stage_id": "adolescence",
+      "category": "Emotional",
       "age_min_years": 12.0,
       "age_max_years": 17.999,
       "template": "{child_name} debated {topic} with {tone}; boundaries landed as {result}.",
